@@ -6,6 +6,8 @@ from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import multiprocessing
 import time
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 class ImageUploaderApp:
     def __init__(self, root):
@@ -153,7 +155,7 @@ class ImageUploaderApp:
             ("Upload Image", self.upload_image_parallel),
             ("Reset", self.reset_image_parallel),
             ("Save Image", self.save_image_parallel),
-            ("Increase Saturation", self.increase_saturation_parallel(num_parts=4)),
+            ("Increase Saturation", lambda: self.increase_saturation_parallel(4)),
             ("Reduce Saturation", self.reduce_saturation_parallel),
             ("Blue", lambda: self.apply_color_filter_parallel('blue')),
             ("Red", lambda: self.apply_color_filter_parallel('red')),
@@ -308,23 +310,122 @@ class ImageUploaderApp:
         processed_part = enhancer.enhance(factor)
         return processed_part
 
+    # def split_image(self, num_parts):
+    #     # Računanje dimenzija delova slike
+    #     width, height = self.image_parallel.size
+    #     part_height = height // num_parts
+        
+    #     # Deljenje slike na delove
+    #     image_parts = []
+    #     for i in range(num_parts):
+    #         upper = i * part_height
+    #         lower = (i + 1) * part_height if i < num_parts - 1 else height
+    #         part = self.image_parallel.crop((0, upper, width, lower))
+    #         image_parts.append(part)
+        
+    #     return image_parts
+
+    # def merge_image_parts(self, image_parts):
+    #     # Spajanje delova slike u jednu
+    #     if not image_parts:
+    #         return None
+        
+    #     width, height = image_parts[0].size
+    #     merged_image = Image.new("RGB", (width, height * len(image_parts)))
+    #     for i, part in enumerate(image_parts):
+    #         merged_image.paste(part, (0, i * height))
+        
+    #     return merged_image
+
+
+
+    # def increase_saturation_parallel(self, num_parts):
+    #     if self.image_parallel:
+    #         start_time = time.time()  # Start timing
+    #         enhancer = ImageEnhance.Color(self.image_parallel)
+    #         self.image_parallel = enhancer.enhance(1.5)
+    #         end_time = time.time()  # End timing
+    #         duration = end_time - start_time
+    #         print(f"Time taken to apply saturation serial: {duration:.4f} seconds")
+    #         self.update_history_parallel()
+            # self.display_image_parallel()
+
+
+        #     start_time_par = time.time()  # Start timing
+        #     self.image_parallel = self.pool.apply_async(self.enhance_color, (self.image_parallel, 1.5))
+        #     self.image_parallel = self.image_parallel.get()  # Wait for the result
+        #     end_time_par = time.time()  # End timing
+        #     duration_par = end_time_par - start_time_par
+        #     print(f"Time taken to apply saturation parallel: {duration_par:.4f} seconds")
+        #     self.update_history_parallel()
+        #     self.display_image_parallel()
+
+        # image_parts = self.split_image(num_parts)
+        
+        # start_time = time.time()  # Start timing
+        # processed_parts = [self.pool.apply_async(self.enhance_color, (part, 1.5)) for part in image_parts]
+        # processed_parts = [part.get() for part in processed_parts]  # Wait for all results
+        # end_time = time.time()  # End timing
+        # duration = end_time - start_time
+
+        # processed_image = self.merge_image_parts(processed_parts)
+        
+        # print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
+        # processed_image.show()
+        # # print("a")
+    def increase_saturation_parallel(self, num_parts):
+        if not self.image_parallel:
+            return
+        
+        # Split the image into parts
+        image_parts = self.split_image(num_parts)
+        
+        start_time = time.time()  # Start timing
+        
+        # Process each part in parallel
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for part in image_parts:
+                futures.append(executor.submit(self.process_part, part))
+            
+            processed_parts = []
+            for future in as_completed(futures):
+                processed_parts.append(future.result())
+        
+        # Merge processed parts back into a single image
+        self.image_parallel = self.merge_image_parts(processed_parts)
+        
+        end_time = time.time()  # End timing
+        duration = end_time - start_time
+        print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
+        
+        # Update history and display the final image
+        self.update_history_parallel()
+        self.display_image_parallel()
+    
+    def process_part(self, part):
+        # Apply saturation enhancement to a part of the image
+        enhancer = ImageEnhance.Color(part)
+        processed_part = enhancer.enhance(1.5)
+        return processed_part
+    
     def split_image(self, num_parts):
-        # Računanje dimenzija delova slike
+        # Calculate dimensions of parts
         width, height = self.image_parallel.size
         part_height = height // num_parts
         
-        # Deljenje slike na delove
+        # Split image into parts
         image_parts = []
         for i in range(num_parts):
             upper = i * part_height
             lower = (i + 1) * part_height if i < num_parts - 1 else height
-            part = self.image.crop((0, upper, width, lower))
+            part = self.image_parallel.crop((0, upper, width, lower))
             image_parts.append(part)
         
         return image_parts
-
+    
     def merge_image_parts(self, image_parts):
-        # Spajanje delova slike u jednu
+        # Merge parts into a single image
         if not image_parts:
             return None
         
@@ -334,32 +435,6 @@ class ImageUploaderApp:
             merged_image.paste(part, (0, i * height))
         
         return merged_image
-
-
-    def increase_saturation_parallel(self, num_parts): # ADDED
-        # if self.image_parallel:
-        #     start_time_par = time.time()  # Start timing
-        #     self.image_parallel = self.pool.apply(self.enhance_color, (self.image_parallel, 1.5))
-        #     # self.image_parallel = self.pool.apply_async(self.enhance_color, (self.image_parallel, 1.5))     
-        #     # self.image_parallel = self.image_parallel.get()  # Wait for the result
-        #     end_time_par = time.time()  # End timing
-        #     duration_par = end_time_par - start_time_par
-        #     print(f"Time taken to apply saturation parallel: {duration_par:.4f} seconds")
-        #     self.update_history_parallel()
-        #     self.display_image_parallel()
-
-        #image_parts = self.split_image(num_parts)
-        
-        # start_time = time.time()  # Start timing
-        # processed_parts = self.pool.starmap(self.enhance_color, [(part, 1.5) for part in image_parts])
-        # end_time = time.time()  # End timing
-        # duration = end_time - start_time
-
-        # processed_image = self.merge_image_parts(processed_parts)
-        
-        #print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
-        print("a")
-        # processed_image.show()
 
     def reduce_saturation(self):
         if self.image:
@@ -547,7 +622,6 @@ class ImageUploaderApp:
         if(self.image):
             self.image = self.image.filter((ImageFilter.GaussianBlur(radius=8)))
             self.display_image()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
