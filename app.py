@@ -28,8 +28,6 @@ class ImageUploaderApp:
         # Dobavi širinu i visinu ekrana
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-    	
-
 
         # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
         image_width = screen_width // 3
