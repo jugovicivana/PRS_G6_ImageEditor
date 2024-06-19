@@ -16,6 +16,8 @@ class ImageUploaderApp:
         # num_processes = multiprocessing.cpu_count()
         # self.pool = multiprocessing.Pool(4)
         self.pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        # self.pool = multiprocessing.Pool(processes=12)
+
 
         print(self.pool)
         self.root = root
