@@ -161,7 +161,7 @@ class ImageUploaderApp:
             ("Upload Image", self.upload_image_parallel),
             ("Reset", self.reset_image_parallel),
             ("Save Image", self.save_image_parallel),
-            ("Increase Saturation", lambda: self.increase_saturation_parallel(4)),
+            ("Increase Saturation", lambda: self.increase_saturation_parallel(12)),
             ("Reduce Saturation", self.reduce_saturation_parallel),
             ("Blue", lambda: self.apply_color_filter_parallel('blue')),
             ("Red", lambda: self.apply_color_filter_parallel('red')),
