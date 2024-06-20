@@ -9,11 +9,30 @@ import os
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import ProcessPoolExecutor, as_completed
  
-def process_part(image_part):
-    def enhance_saturation(image):
-        enhancer = ImageEnhance.Color(image)
-        return enhancer.enhance(1.5)
-    return enhance_saturation(image_part)
+# def process_part(image_part):
+#     def enhance_saturation(image):
+#         enhancer = ImageEnhance.Color(image)
+#         return enhancer.enhance(1.5)
+#     # Proverite dimenzije pre obrade
+#     # print(f"Original part size: {image_part.size}")
+
+#     # Apply saturation enhancement to a part of the image
+#     enhancer = ImageEnhance.Color(image_part)
+#     processed_part = enhancer.enhance(1.5)
+
+#     # Proverite dimenzije posle obrade
+#     # print(f"Processed part size: {processed_part.size}")
+
+#     return processed_part
+
+def process_part( index, part):
+    # Apply saturation enhancement to a part of the image
+    enhancer = ImageEnhance.Color(part)
+    processed_part = enhancer.enhance(1.5)
+    return index, processed_part
+
+
+    # return enhance_saturation(image_part)
  
 class ImageUploaderApp:
     def __init__(self, root):
@@ -410,50 +429,97 @@ class ImageUploaderApp:
         # self.update_history_parallel()
         # self.display_image_parallel()
  
+        # if not self.image_parallel:
+        #     return
+ 
+        # # Podelite sliku na delove
+        # image_parts = self.split_image(num_parts)
+ 
+        # start_time = time.time()  # Start timing
+ 
+        # # Obrada svakog dela paralelno
+        # with ProcessPoolExecutor() as executor:
+        #     futures = [executor.submit(process_part, part) for part in image_parts]
+           
+        #     processed_parts = [future.result() for future in as_completed(futures)]
+ 
+        # # Spajanje obrađenih delova u jednu sliku
+        # self.image_parallel = self.merge_image_parts(processed_parts)
+ 
+        # end_time = time.time()  # End timing
+        # duration = end_time - start_time
+        # print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
+ 
+        # # Ažurirajte istoriju i prikažite finalnu sliku
+        # self.update_history_parallel()
+        # self.display_image_parallel()
+
+
         if not self.image_parallel:
             return
- 
-        # Podelite sliku na delove
-        image_parts = self.split_image(num_parts)
- 
+
+        # Podelite sliku na delove sa indeksima
+        image_parts_with_indices = self.split_image(num_parts)
+
         start_time = time.time()  # Start timing
- 
+
         # Obrada svakog dela paralelno
         with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(process_part, part) for part in image_parts]
-           
-            processed_parts = [future.result() for future in as_completed(futures)]
- 
+            futures = [executor.submit(process_part, index, part) for index, part in image_parts_with_indices]
+
+            processed_parts = []
+            for future in as_completed(futures):
+                processed_parts.append(future.result())
+
+        # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
+        processed_parts.sort(key=lambda x: x[0])
+        processed_parts = [part for index, part in processed_parts]
+
         # Spajanje obrađenih delova u jednu sliku
         self.image_parallel = self.merge_image_parts(processed_parts)
- 
+
         end_time = time.time()  # End timing
         duration = end_time - start_time
         print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
- 
+
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
         self.display_image_parallel()
+
     # def process_part(self, part):
     #     # Apply saturation enhancement to a part of the image
     #     enhancer = ImageEnhance.Color(part)
     #     processed_part = enhancer.enhance(1.5)
     #     return processed_part
    
+    # def split_image(self, num_parts):
+    #     # Calculate dimensions of parts
+    #     width, height = self.image_parallel.size
+    #     part_height = height // num_parts
+       
+    #     # Split image into parts
+    #     image_parts = []
+    #     for i in range(num_parts):
+    #         upper = i * part_height
+    #         lower = (i + 1) * part_height if i < num_parts - 1 else height
+    #         part = self.image_parallel.crop((0, upper, width, lower))
+    #         image_parts.append(part)
+       
+    #     return image_parts
+
     def split_image(self, num_parts):
-        # Calculate dimensions of parts
         width, height = self.image_parallel.size
         part_height = height // num_parts
-       
-        # Split image into parts
-        image_parts = []
+        image_parts_with_indices = []
+
         for i in range(num_parts):
             upper = i * part_height
             lower = (i + 1) * part_height if i < num_parts - 1 else height
             part = self.image_parallel.crop((0, upper, width, lower))
-            image_parts.append(part)
-       
-        return image_parts
+            print(f"Part {i}: upper={upper}, lower={lower}")
+            image_parts_with_indices.append((i, part))
+
+        return image_parts_with_indices
    
     # def split_image(self, num_parts):
     #     width, height = self.image_parallel.size
@@ -468,6 +534,21 @@ class ImageUploaderApp:
  
     #     return image_parts
  
+    # def merge_image_parts(self, image_parts):
+    #     if not image_parts:
+    #         return None
+
+    #     width = image_parts[0].size[0]
+    #     part_height = image_parts[0].size[1]
+    #     total_height = part_height * len(image_parts)
+    #     merged_image = Image.new("RGB", (width, total_height))
+
+    #     for i, part in enumerate(image_parts):
+    #         merged_image.paste(part, (0, i * part_height))
+    #         print(f"Part {i} pasted at: {i * part_height}")
+
+    #     return merged_image
+    
     def merge_image_parts(self, image_parts):
         if not image_parts:
             return None
@@ -479,9 +560,10 @@ class ImageUploaderApp:
 
         for i, part in enumerate(image_parts):
             merged_image.paste(part, (0, i * part_height))
+            print(f"Part {i} pasted at: {i * part_height}")
 
         return merged_image
-   
+
     # def merge_image_parts(self, image_parts):
     #     # Merge parts into a single image
     #     if not image_parts:
