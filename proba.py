@@ -27,18 +27,20 @@ def complex_filter_part(index, part):
     enhancer = ImageEnhance.Color(part)
     part = enhancer.enhance(2.0)
 
-    # Primena zamućenja
-    part = part.filter(ImageFilter.BLUR)
+    e1=ImageEnhance.Sharpness(part)
+    part=e1.enhance(2.0)
+    # # Primena zamućenja
+    # part = part.filter(ImageFilter.BLUR)
 
-    # Povećanje detalja
-    part = part.filter(ImageFilter.DETAIL)
+    # # Povećanje detalja
+    # part = part.filter(ImageFilter.DETAIL)
 
     # # Poboljšanje ivica
     # part = part.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
     #Dodavanje dodatnih filtera za složenost
     # part = part.filter(ImageFilter.CONTOUR)
-    part = part.filter(ImageFilter.SHARPEN)
+    # part = part.filter(ImageFilter.SHARPEN)
 
     return index, part
 class ImageUploaderApp:
