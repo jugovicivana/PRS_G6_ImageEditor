@@ -465,20 +465,20 @@ class ImageUploaderApp:
             for future in as_completed(futures):
                 processed_parts.append(future.result())
 
-        # # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
-        # processed_parts.sort(key=lambda x: x[0])
-        # processed_parts = [part for index, part in processed_parts]
+        # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
+        processed_parts.sort(key=lambda x: x[0])
+        processed_parts = [part for index, part in processed_parts]
 
-        # # Spajanje obrađenih delova u jednu sliku
-        # self.image_parallel = self.merge_image_parts(processed_parts)
+        # Spajanje obrađenih delova u jednu sliku
+        self.image_parallel = self.merge_image_parts(processed_parts)
         
-        # end_time = time.time()  # End timing
-        # duration = end_time - start_time
-        # print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
+        end_time = time.time()  # End timing
+        duration = end_time - start_time
+        print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
 
-        # # Ažurirajte istoriju i prikažite finalnu sliku
-        # self.update_history_parallel()
-        # self.display_image_parallel()
+        # Ažurirajte istoriju i prikažite finalnu sliku
+        self.update_history_parallel()
+        self.display_image_parallel()
 
          
         # with ProcessPoolExecutor() as executor:
