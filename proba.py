@@ -9,6 +9,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
+
 def process_part( index, part):
     # Apply saturation enhancement to a part of the image
     enhancer = ImageEnhance.Color(part)
@@ -29,6 +30,9 @@ def complex_filter_part(index, part):
 
     e1=ImageEnhance.Sharpness(part)
     part=e1.enhance(2.0)
+
+    part=ImageOps.autocontrast(part)
+    part=ImageOps.posterize(part, bits=2)
     # # Primena zamućenja
     # part = part.filter(ImageFilter.BLUR)
 
@@ -429,16 +433,23 @@ class ImageUploaderApp:
         enhancer = ImageEnhance.Color(self.image)
         self.image = enhancer.enhance(2.0)
 
-        # Primena zamućenja
-        self.image = self.image.filter(ImageFilter.BLUR)
+        # # Primena zamućenja
+        # self.image = self.image.filter(ImageFilter.BLUR)
 
-        # Povećanje detalja
-        self.image = self.image.filter(ImageFilter.DETAIL)
+        # # Povećanje detalja
+        # self.image = self.image.filter(ImageFilter.DETAIL)
 
-        # # Poboljšanje ivica
-        # self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+        # # # Poboljšanje ivica
+        # # self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
-        self.image = self.image.filter(ImageFilter.SHARPEN)
+        # self.image = self.image.filter(ImageFilter.SHARPEN)
+
+        
+        e1=ImageEnhance.Sharpness(self.image)
+        self.image=e1.enhance(2.0)
+
+        self.image=ImageOps.autocontrast(self.image)
+        self.image=ImageOps.posterize(self.image, bits=2)
 
         end_time = time.time()
         duration = end_time - start_time
