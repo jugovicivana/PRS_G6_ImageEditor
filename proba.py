@@ -33,10 +33,10 @@ def complex_filter_part(index, part):
     # Povećanje detalja
     part = part.filter(ImageFilter.DETAIL)
 
-    # Poboljšanje ivica
-    part = part.filter(ImageFilter.EDGE_ENHANCE_MORE)
+    # # Poboljšanje ivica
+    # part = part.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
-    # Dodavanje dodatnih filtera za složenost
+    #Dodavanje dodatnih filtera za složenost
     # part = part.filter(ImageFilter.CONTOUR)
     part = part.filter(ImageFilter.SHARPEN)
 
@@ -421,9 +421,8 @@ class ImageUploaderApp:
         if not self.image:
             return
         start_time = time.time()
-        
 
-
+      
         # Povećanje zasićenja
         enhancer = ImageEnhance.Color(self.image)
         self.image = enhancer.enhance(2.0)
@@ -434,11 +433,9 @@ class ImageUploaderApp:
         # Povećanje detalja
         self.image = self.image.filter(ImageFilter.DETAIL)
 
-        # Poboljšanje ivica
-        self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+        # # Poboljšanje ivica
+        # self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
-        # Dodavanje dodatnih filtera za složenost
-        self.image = self.image.filter(ImageFilter.CONTOUR)
         self.image = self.image.filter(ImageFilter.SHARPEN)
 
         end_time = time.time()
