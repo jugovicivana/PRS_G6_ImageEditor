@@ -19,6 +19,10 @@ def apply_color_filter_part(index, part, color):
         b = b.point(lambda p: p * 1.5)
     return index, Image.merge('RGB', (r, g, b))
 
+def flip_image_part(index, part):
+    # Ovde bi se vršila obrada dela slike (npr. flip_left_right)
+    return index, part.transpose(Image.FLIP_LEFT_RIGHT)
+
 
 def process_part( index, part):
     # Apply saturation enhancement to a part of the image
@@ -82,17 +86,19 @@ def complexBW_filter_part(index, part):
 
     return index, part
 class ImageUploaderApp:
-    def __init__(self, root):
 
+    def __init__(self, root):
         self.pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
  
         # print(self.pool)
         self.root = root
         self.root.state('zoomed')  # Maksimiziraj prozor da pokrije ekran osim trake sa zadacima
         self.root.configure(bg='#FFF8DC')  # Postavi boju pozadine na lila
-       
-        space=(" ")*215
-       
+        self.root.resizable(False, False)
+        # self.root.wm_attributes("-toolwindow", 1)
+        space=(" ")*220
+
+
         self.root.title(f"{space}Image Editor")
         # Dobavi širinu i visinu ekrana
         screen_width = self.root.winfo_screenwidth()
@@ -101,20 +107,26 @@ class ImageUploaderApp:
         # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
         image_width = screen_width // 3
         image_height = screen_height // 2
- 
+
+       
+
         # Kreiraj okvir za lijevu stranu (serijsko izvršavanje)
-        left_frame = tk.Frame(root, bg='#FFF8DC')
-        left_frame.pack(side='left', fill='both', expand=True)
- 
-        label_serial = tk.Label(left_frame, text="Serijsko izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        self.left_frame = tk.Frame(root, bg='#FFF8DC')
+        self.left_frame.pack(side='left', fill='both', expand=True)
+        self.left_frame.pack_propagate(0) 
+        label_serial = tk.Label(self.left_frame, text="Serijsko izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
         label_serial.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
- 
+
+        label_text=tk.Label(self.left_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        label_text.pack(side='bottom', pady=(10, 0))
+
         # Kreiraj okvir za desnu stranu (paralelno izvršavanje)
-        right_frame = tk.Frame(root, bg='#FFF8DC')
-        right_frame.pack(side='right', fill='both', expand=True)
+        self.right_frame = tk.Frame(root, bg='#FFF8DC')
+        self.right_frame.pack(side='right', fill='both', expand=True)
+        self.right_frame.pack_propagate(0) 
  
         # Kreiranje natpisa "Paralelno izvršavanje"
-        label_parallel = tk.Label(right_frame, text="Paralelno izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#B51B75')
+        label_parallel = tk.Label(self.right_frame, text="Paralelno izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#B51B75')
         label_parallel.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
  
  
@@ -146,9 +158,9 @@ class ImageUploaderApp:
             return image_canvas
  
         # Kreiraj lijevi okvir za sliku i gumbe (serijsko izvršavanje)
-        self.image_canvas = create_image_frame(left_frame)
+        self.image_canvas = create_image_frame(self.left_frame)
 
-        button_frame_canvas = tk.Canvas(left_frame, bg='#FFF8DC', highlightthickness=0)
+        button_frame_canvas = tk.Canvas(self.left_frame, bg='#FFF8DC', highlightthickness=0)
         button_frame_canvas.pack(side='right', fill='y', expand=False)
 
  
@@ -160,9 +172,9 @@ class ImageUploaderApp:
  
         # Kreiraj gumbe i grupiraj ih po funkcionalnosti
         style = ttk.Style()
-        style.configure("TButton", font=("Helvetica", 10), padding=5, background='#D74B76',foreground='#EF9595')
-        style.map("TButton", background=[('active', '#EF9595')])
-        style.map("TButton", foreground=[('active', "#D74B76")])
+        style.configure("Main.TButton", font=("Helvetica", 10), padding=5, background='#D74B76',foreground='#EF9595')
+        style.map("Main.TButton", background=[('active', '#EF9595')])
+        style.map("Main.TButton", foreground=[('active', "#D74B76")])
 
         # Učitaj ikonu za Undo i Redo
         undo_icon = Image.open("undo.png")  # Promijenite naziv i putanju prema vašoj ikoni
@@ -177,6 +189,10 @@ class ImageUploaderApp:
         cut_icon = cut_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
         cut_icon = ImageTk.PhotoImage(cut_icon)
 
+        flip_icon = Image.open("flip.png")  # Promijenite naziv i putanju prema vašoj ikoni
+        flip_icon = flip_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
+        flip_icon = ImageTk.PhotoImage(flip_icon)
+
         rotate_icon = Image.open("rotate.png")  # Promijenite naziv i putanju prema vašoj ikoni
         rotate_icon = rotate_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
         rotate_icon = ImageTk.PhotoImage(rotate_icon)
@@ -187,7 +203,6 @@ class ImageUploaderApp:
             ("Save Image", self.save_image),
             ("Increase Saturation", self.increase_saturation),
             ("Reduce Saturation", self.reduce_saturation),
-            ("Flip", self.flip),
             ("Blur", self.blurr),
             ("Filter Colors", self.apply_complex_filter_serial),
             ("Filter BW", self.apply_complexBW_filter_serial),
@@ -195,7 +210,7 @@ class ImageUploaderApp:
         ]
  
         for text, command in buttons_left:
-            button = ttk.Button(button_frame, text=text, command=command, width=15)
+            button = ttk.Button(button_frame, text=text, command=command, width=18, style="Main.TButton")
             button.pack(pady=10)
         
         # Kreiraj okvir za cut/rotate
@@ -210,23 +225,32 @@ class ImageUploaderApp:
         rotate_button.image = rotate_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
         rotate_button.pack(side='left', padx=5, pady=10)
 
+        flip_button = ttk.Button(cutrotate_frame_left, image=flip_icon, command=self.flip)
+        flip_button.image = flip_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        flip_button.pack(side='left', padx=5, pady=10)
+ 
         def on_enter_blue(event):
-            event.widget.configure(bg='#ADD8E6', bd=1, relief=tk.SOLID)  # Svijetlo plava pozadina i tanki solidni okvir
+            event.widget.configure(bg='#99cff8', bd=1, width=7, fg="#034b81", relief=tk.SOLID)  # 
+
 
         def on_leave_blue(event):
-            event.widget.configure(bg='blue', bd=1, relief=tk.SOLID)  # Originalna plava pozadina bez okvira
+            event.widget.configure(bg='#034b81', bd=1, fg="#99cff8",relief=tk.SOLID)  # 
+
 
         def on_enter_red(event):
-            event.widget.configure(bg='#F08080', bd=1, relief=tk.SOLID)  # Svijetlo crvena pozadina i tanki solidni okvir
+            event.widget.configure(bg='#f88b83',width=7, fg="#ac1004", bd=1, relief=tk.SOLID)  # 
+
 
         def on_leave_red(event):
-            event.widget.configure(bg='red', bd=1, relief=tk.SOLID)  # Originalna crvena pozadina bez okvira
+            event.widget.configure(bg='#ac1004', fg="#f88b83",bd=1, relief=tk.SOLID)  # 
+
 
         def on_enter_green(event):
-            event.widget.configure(bg='#90EE90', bd=1, relief=tk.SOLID)  # Svijetlo zelena pozadina i tanki solidni okvir
+            event.widget.configure(bg='#74fb3a', width=7, fg='#38761d',bd=1, relief=tk.SOLID)  # 
+
 
         def on_leave_green(event):
-            event.widget.configure(bg='green', bd=1, relief=tk.SOLID)  # Originalna zelena pozadina bez okvira
+            event.widget.configure(bg='#38761d',fg='#74fb3a', bd=1, relief=tk.SOLID)  # 
 
         
         # Kreiraj okvir za boje (serijsko izvršavanje)
@@ -234,23 +258,53 @@ class ImageUploaderApp:
         color_frame_left.pack(pady=10)
  
         colors_left = [
-            ("Blue", lambda: self.apply_color_filter('blue'), 'blue'),
-            ("Red", lambda: self.apply_color_filter('red'), 'red'),
-            ("Green", lambda: self.apply_color_filter('green'), 'green')
+            ("Blue", lambda: self.apply_color_filter('blue'), '#034b81', '#99cff8'),
+            ("Red", lambda: self.apply_color_filter('red'), '#ac1004','#f88b83'),
+            ("Green", lambda: self.apply_color_filter('green'), '#38761d', '#74fb3a')
         ]
- 
-        for text, command, color in colors_left:
-            button = tk.Button(color_frame_left, text=text, command=command, width=7, bg=color, fg='white')
+
+
+        # background_colors = ["lightblue", "lightpink", "lightgreen"]
+        # border_colors = ["blue", "red", "green"]
+        # button_text=["Blue", "Red", "Green"]
+        # commands = [lambda: self.apply_color_filter('blue'), lambda: self.apply_color_filter('red'), lambda: self.apply_color_filter('green')]
+
+
+        # buttons = []
+        # for i, (bg_color, border_color, txt) in enumerate(zip(background_colors, border_colors, button_text)):
+        #     style_name = f"{i}.TButton"  # Jedinstveno ime za svaki stil
+        #     style = ttk.Style()
+        #     style.configure("Custom.TButton",
+        #         font=("Helvetica", 10),
+        #         padding=5,
+        #         foreground='white')
+        #     # Konfigurišite stil za svako dugme
+        #     style.configure(style_name,
+        #                     background=bg_color,
+        #                     bordercolor=border_color,
+        #                     relief="solid",
+        #                     borderwidth=1
+        #                     )
+        #     style.map(style_name, background=[('active', bg_color)], relief=[('pressed', 'sunken'), ('!pressed', 'raised')])
+        
+        #     # Kreirajte dugme sa odgovarajućim stilom
+        #     button = ttk.Button(color_frame_left, text=txt, width=7,style=style_name)
+        #     button.pack(side='left', padx=5)
+        #     buttons.append(button)
+
+
+        for text, command, color, fgText in colors_left:
+            button = tk.Button(color_frame_left, text=text, command=command, width=7, bg=color,fg=fgText, bd=1)
             button.pack(side='left', padx=5)
             
             # Dodaj vezu za događaje miša
-            if color == 'blue':
+            if color == '#034b81':
                 button.bind('<Enter>', on_enter_blue)
                 button.bind('<Leave>', on_leave_blue)
-            elif color == 'red':
+            elif color == '#ac1004':
                 button.bind('<Enter>', on_enter_red)
                 button.bind('<Leave>', on_leave_red)
-            elif color == 'green':
+            elif color == '#38761d':
                 button.bind('<Enter>', on_enter_green)
                 button.bind('<Leave>', on_leave_green)
 
@@ -277,10 +331,10 @@ class ImageUploaderApp:
         #     button.pack(side='left', padx=5)
  
         # Kreiraj desni okvir za sliku i gumbe (paralelno izvršavanje)
-        self.image_canvas_parallel = create_image_frame(right_frame)
+        self.image_canvas_parallel = create_image_frame(self.right_frame)
  
         # Kreiraj okvir za gumbe s desne strane uz scrollbar
-        button_frame_canvas_parallel = tk.Canvas(right_frame, bg='#FFF8DC', highlightthickness=0)
+        button_frame_canvas_parallel = tk.Canvas(self.right_frame, bg='#FFF8DC', highlightthickness=0)
         button_frame_canvas_parallel.pack(side='right', fill='y', expand=False)
  
  
@@ -296,7 +350,6 @@ class ImageUploaderApp:
             ("Save Image", self.save_image_parallel),
             ("Increase Saturation", lambda: self.increase_saturation_parallel(multiprocessing.cpu_count())),
             ("Reduce Saturation", lambda: self.reduce_saturation_parallel(multiprocessing.cpu_count())),
-            ("Flip", self.flip_parallel),
             ("Blur", self.blurr_parallel),
             ("Filter Colors", lambda:self.apply_complex_filter_parallel(multiprocessing.cpu_count())),
             ("Filter BW", lambda:self.apply_complexBW_filter_parallel(multiprocessing.cpu_count())),
@@ -307,7 +360,7 @@ class ImageUploaderApp:
  
  
         for text, command in buttons_right:
-            button = ttk.Button(button_frame_parallel, text=text, command=command, width=15)
+            button = ttk.Button(button_frame_parallel, text=text, command=command, width=18, style="Main.TButton")
             button.pack(pady=10)
         
          # Kreiraj okvir za cut/rotate
@@ -322,28 +375,32 @@ class ImageUploaderApp:
         rotate_button_parallel.image = rotate_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
         rotate_button_parallel.pack(side='left', padx=5, pady=10)
 
+        flip_button_parallel = ttk.Button(cutrotate_frame_right, image=flip_icon, command=self.flip_parallel)
+        flip_button_parallel.image = flip_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        flip_button_parallel.pack(side='left', padx=5, pady=10)
+
          # Kreiraj okvir za boje
         color_frame_right = tk.Frame(button_frame_parallel, bg='#FFF8DC')
         color_frame_right.pack(pady=10)
  
         colors_right = [
-            ("Blue", lambda: self.apply_color_filter_parallel('blue'), 'blue'),
-            ("Red", lambda: self.apply_color_filter_parallel('red'), 'red'),
-            ("Green", lambda: self.apply_color_filter_parallel('green'), 'green')
+             ("Blue", lambda: self.apply_color_filter_parallel('blue'), '#034b81', '#99cff8'),
+            ("Red", lambda: self.apply_color_filter_parallel('red'), '#ac1004','#f88b83'),
+            ("Green", lambda: self.apply_color_filter_parallel('green'), '#38761d', '#74fb3a')
         ]
  
-        for text, command, color in colors_right:
-            button = tk.Button(color_frame_right, text=text, command=command, width=7, bg=color, fg='white')
+        for text, command, color, fgText in colors_right:
+            button = tk.Button(color_frame_right, text=text, command=command, width=7, bg=color,fg=fgText, bd=1)
             button.pack(side='left', padx=5)
             
             # Dodaj vezu za događaje miša
-            if color == 'blue':
+            if color == '#034b81':
                 button.bind('<Enter>', on_enter_blue)
                 button.bind('<Leave>', on_leave_blue)
-            elif color == 'red':
+            elif color == '#ac1004':
                 button.bind('<Enter>', on_enter_red)
                 button.bind('<Leave>', on_leave_red)
-            elif color == 'green':
+            elif color == '#38761d':
                 button.bind('<Enter>', on_enter_green)
                 button.bind('<Leave>', on_leave_green)
 
@@ -393,16 +450,17 @@ class ImageUploaderApp:
         if self.image:
             img=self.image
             self.image_canvas.delete("all")
- 
+            image_width=self.root.winfo_width()//3
             # Prilagodite veličinu slike na temelju širine image_canvas
             if(img.height<=img.width):
                 imgratio = img.height / img.width
-                img = img.resize((600, int(600 * imgratio)))
+               
+                img = img.resize((image_width, int(image_width * imgratio)))
                 canvas_width = img.width
                 canvas_height =int(canvas_width * imgratio)
             else:
                 imgratio = img.width / img.height
-                img = img.resize((int(800 * imgratio),800))
+                img = img.resize((int(image_width * imgratio),image_width))
                 canvas_height = img.height
                 canvas_width =int(canvas_height * imgratio)
  
@@ -423,16 +481,18 @@ class ImageUploaderApp:
         if self.image_parallel:
             img=self.image_parallel
             self.image_canvas_parallel.delete("all")
+            image_width=self.root.winfo_width()//3
  
             # Prilagodite veličinu slike na temelju širine image_canvas
             if(img.height<=img.width):
                 imgratio = img.height / img.width
-                img = img.resize((600, int(600 * imgratio)))
+                img = img.resize((image_width, int(image_width * imgratio)))
+
                 canvas_width = img.width
                 canvas_height =int(canvas_width * imgratio)
             else:
                 imgratio = img.width / img.height
-                img = img.resize((int(800 * imgratio),800))
+                img = img.resize((int(image_width * imgratio),image_width))
                 canvas_height = img.height
                 canvas_width =int(canvas_height * imgratio)
          
@@ -940,19 +1000,53 @@ class ImageUploaderApp:
             self.display_image()
  
     def flip_parallel(self):
-        if(self.image):
-            self.image = self.image.transpose((Image.FLIP_LEFT_RIGHT))
-            self.display_image()
- 
+        if self.image_parallel:
+            # Podelite sliku na delove
+            num_parts = multiprocessing.cpu_count()  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
+            overlap = 10
+            image_parts_with_indices = self.split_image(num_parts, overlap)
+
+            part_height = self.image_parallel.size[1] // num_parts
+
+            start_time = time.time()  # Start timing
+
+            # Obrada svakog dela paralelno
+            with ProcessPoolExecutor() as executor:
+                futures = [executor.submit(flip_image_part, index, part) for index, part in image_parts_with_indices]
+
+                processed_parts = []
+                for future in as_completed(futures):
+                    processed_parts.append(future.result())
+
+            # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
+            processed_parts.sort(key=lambda x: x[0])
+            processed_parts = [part for index, part in processed_parts]
+
+            # Spajanje obrađenih delova u jednu sliku
+            self.image_parallel = self.merge_image_parts(processed_parts, part_height, overlap)
+            
+            end_time = time.time()  # End timing
+            duration = end_time - start_time
+            print(f"Time taken to apply flip parallel: {duration:.4f} seconds")
+            
+            # Ažuriranje istorije i prikazivanje finalne slike
+            self.update_history_parallel()
+            self.display_image_parallel()
+
     def blurr(self):
         if(self.image):
             self.image = self.image.filter((ImageFilter.GaussianBlur(radius=8)))
+            self.update_history();
             self.display_image()
  
     def blurr_parallel(self):
-        if(self.image):
-            self.image = self.image.filter((ImageFilter.GaussianBlur(radius=8)))
-            self.display_image()
+        if(self.image_parallel):
+            self.image_parallel = self.image_parallel.filter((ImageFilter.GaussianBlur(radius=8)))
+            self.update_history_parallel();
+
+            self.display_image_parallel()
+
+
  
 if __name__ == "__main__":
     root = tk.Tk()
