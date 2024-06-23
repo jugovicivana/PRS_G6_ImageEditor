@@ -28,23 +28,23 @@ def complex_filter_part(index, part):
     enhancer = ImageEnhance.Color(part)
     part = enhancer.enhance(2.0)
 
-    e1=ImageEnhance.Sharpness(part)
-    part=e1.enhance(2.0)
+    # e1=ImageEnhance.Sharpness(part)
+    # part=e1.enhance(2.0)
 
-    part=ImageOps.autocontrast(part)
-    part=ImageOps.posterize(part, bits=2)
-    # # Primena zamućenja
-    # part = part.filter(ImageFilter.BLUR)
+    # part=ImageOps.autocontrast(part)
+    # part=ImageOps.posterize(part, bits=2)
+    # Primena zamućenja
+    part = part.filter(ImageFilter.BLUR)
 
-    # # Povećanje detalja
-    # part = part.filter(ImageFilter.DETAIL)
+    # Povećanje detalja
+    part = part.filter(ImageFilter.DETAIL)
 
-    # # Poboljšanje ivica
-    # part = part.filter(ImageFilter.EDGE_ENHANCE_MORE)
+    # Poboljšanje ivica
+    #part = part.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
     #Dodavanje dodatnih filtera za složenost
     # part = part.filter(ImageFilter.CONTOUR)
-    # part = part.filter(ImageFilter.SHARPEN)
+    part = part.filter(ImageFilter.SHARPEN)
 
     return index, part
 class ImageUploaderApp:
@@ -170,8 +170,8 @@ class ImageUploaderApp:
             ("Upload Image", self.upload_image_parallel),
             ("Reset", self.reset_image_parallel),
             ("Save Image", self.save_image_parallel),
-            ("Increase Saturation", lambda: self.increase_saturation_parallel(4)),
-            ("Reduce Saturation", lambda: self.reduce_saturation_parallel(4)),
+            ("Increase Saturation", lambda: self.increase_saturation_parallel(multiprocessing.cpu_count())),
+            ("Reduce Saturation", lambda: self.reduce_saturation_parallel(multiprocessing.cpu_count())),
             ("Blue", lambda: self.apply_color_filter_parallel('blue')),
             ("Red", lambda: self.apply_color_filter_parallel('red')),
             ("Green", lambda: self.apply_color_filter_parallel('green')),
@@ -433,23 +433,24 @@ class ImageUploaderApp:
         enhancer = ImageEnhance.Color(self.image)
         self.image = enhancer.enhance(2.0)
 
-        # # Primena zamućenja
-        # self.image = self.image.filter(ImageFilter.BLUR)
+        # Primena zamućenja
+        self.image = self.image.filter(ImageFilter.BLUR)
 
-        # # Povećanje detalja
-        # self.image = self.image.filter(ImageFilter.DETAIL)
+        # Povećanje detalja
+        self.image = self.image.filter(ImageFilter.DETAIL)
 
-        # # # Poboljšanje ivica
-        # # self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+        # # Poboljšanje ivica
+        # self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
-        # self.image = self.image.filter(ImageFilter.SHARPEN)
+        self.image = self.image.filter(ImageFilter.SHARPEN)
 
         
-        e1=ImageEnhance.Sharpness(self.image)
-        self.image=e1.enhance(2.0)
+        #----------------------------------
+        # e1=ImageEnhance.Sharpness(self.image)
+        # self.image=e1.enhance(2.0)
 
-        self.image=ImageOps.autocontrast(self.image)
-        self.image=ImageOps.posterize(self.image, bits=2)
+        # self.image=ImageOps.autocontrast(self.image)
+        # self.image=ImageOps.posterize(self.image, bits=2)
 
         end_time = time.time()
         duration = end_time - start_time
