@@ -92,12 +92,12 @@ class ImageUploaderApp:
  
         # print(self.pool)
         self.root = root
-        self.root.state('zoomed')  # Maksimiziraj prozor da pokrije ekran osim trake sa zadacima
+  # Maksimiziraj prozor da pokrije ekran osim trake sa zadacima
         self.root.configure(bg='#FFF8DC')  # Postavi boju pozadine na lila
         self.root.resizable(False, False)
         # self.root.wm_attributes("-toolwindow", 1)
         space=(" ")*220
-
+        #self.root.state('zoomed')
 
         self.root.title(f"{space}Image Editor")
         # Dobavi širinu i visinu ekrana
@@ -107,7 +107,12 @@ class ImageUploaderApp:
         # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
         image_width = screen_width // 3
         image_height = screen_height // 2
+        
 
+        # Postavljamo dimenzije prozora tako da ne prelazi preko trake sa zadacima
+
+        # Podešavamo dimenzije prozora
+        root.geometry("1400x700")
        
 
         # Kreiraj okvir za lijevu stranu (serijsko izvršavanje)
@@ -118,7 +123,7 @@ class ImageUploaderApp:
         label_serial.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
 
         label_text=tk.Label(self.left_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
-        label_text.pack(side='bottom', pady=(10, 0))
+        label_text.pack(side='bottom', pady=(0, 0))
 
         # Kreiraj okvir za desnu stranu (paralelno izvršavanje)
         self.right_frame = tk.Frame(root, bg='#FFF8DC')
@@ -128,7 +133,8 @@ class ImageUploaderApp:
         # Kreiranje natpisa "Paralelno izvršavanje"
         label_parallel = tk.Label(self.right_frame, text="Paralelno izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#B51B75')
         label_parallel.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
- 
+        label_text_par=tk.Label(self.right_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        label_text_par.pack(side='bottom', pady=(0, 0))
  
         # Dodaj razmak između okvira
         #ttk.Separator(root, orient='vertical').pack(side='left', fill='y', padx=10)
