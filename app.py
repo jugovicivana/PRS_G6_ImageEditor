@@ -85,11 +85,91 @@ def complexBW_filter_part(index, part):
     part=part.filter(ImageFilter.MedianFilter(size=3))
 
     return index, part
+
+
+class StartPage:
+
+    # def create_main_window(self):
+
+    #     # self.main_window.geometry("400x300")
+    def on_closing(self):
+        self.root.destroy() 
+
+    def add_button(self):
+        # btn_open_page = ttk.Button(self.root, text="Otvori Image App", command=self.open_new_page)
+        # btn_open_page.pack(pady=(100, 20))  # Gornji razmak 100 piksela, donji razmak 20 piksela
+
+        # # Drugo dugme
+        # btn_auto_process = ttk.Button(self.root, text="Automatski Izaberi Nacin Obrade", command=self.auto_select_processing)
+        # btn_auto_process.pack(pady=20)  # Gornji i donji razmak 20 piksela
+
+              # Dugme za otvaranje Image App (na levoj strani)
+        # btn_open_page = ttk.Button(self.root, text="Manuelno biranje", command=self.open_new_page)
+        # btn_open_page.pack(side=tk.RIGHT, padx=(20, 10), pady=(20, 10))  # Razmaci od 20 piksela sa leve i desne strane, 10 piksela gore i dole
+        # # btn_open_page.grid(row=0, column=10)
+        # # Dugme za automatski izbor načina obrade (na desnoj strani)
+        # btn_auto_process = ttk.Button(self.root, text="Automatsko biranje", command=self.auto_select_processing)
+        # btn_auto_process.pack(side=tk.RIGHT, padx=(10, 20), pady=(20, 10))  # Razmaci od 10 piksela sa leve i desne strane, 20 piksela gore i dole
+
+        # Dugme za manuelno biranje        
+        btn_open_page = ttk.Button(self.root, text="Manuelno biranje", command=self.open_new_page)         
+        btn_open_page.grid(row=0, column=0, padx=(20, 10), pady=(20, 10))         
+        # Dugme za automatski izbor načina obrade       
+        btn_auto_process = ttk.Button(self.root, text="Automatsko biranje", command=self.auto_select_processing)         
+        btn_auto_process.grid(row=1, column=0, padx=(20, 10), pady=(20, 10))
+
+    def auto_select_processing(self):
+        # Dodajte ovde funkcionalnost za automatski izbor načina obrade
+        print("Automatski izbor načina obrade")
+
+    def open_new_page(self):
+        self.main_window = tk.Toplevel(self.root)
+        self.main_window.title("Nova Stranica")
+        self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.image_app = ImageUploaderApp(self.main_window) 
+        # Dodajte elemente ili funkcionalnosti na novu stranicu
+        self.root.withdraw()
+
+    def __init__(self, root):
+        self.root = root
+        self.root.configure(bg='#F1E5D1')  # Postavi boju pozadine na lila
+        self.root.resizable(False, False)
+        # self.root.wm_attributes("-toolwindow", 1)
+        #self.root.state('zoomed')
+        window_width = 600
+        window_height = 400
+
+        # Dobavite širinu i visinu ekrana
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # Izračunajte x i y koordinate za centriranje prozora
+        position_x = int(screen_width/2 - window_width/2)
+        position_y = int(screen_height/2 - window_height/2)
+        # Postavite geometriju prozora
+        self.root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+
+     
+            # Učitavanje slike za pozadinu
+        background_image = tk.PhotoImage(file="pozNovo.png")
+
+        # Postavljanje pozadine koristeći Label widget
+        background_label = tk.Label(self.root, image=background_image)
+        background_label.image = background_image  # Ovo je važno začuvanje reference na sliku
+        background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+
+        self.root.title(f"Artify")
+
+        # label_artify = tk.Label(self.root, text="Artify", font=("Brush Script MT", 36), bg=self.root.cget("bg"), fg="black")
+        # label_artify.pack(side=tk.RIGHT,pady=20)
+
+        self.add_button()
+
 class ImageUploaderApp:
 
     def __init__(self, root):
         self.pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
- 
         # print(self.pool)
         self.root = root
   # Maksimiziraj prozor da pokrije ekran osim trake sa zadacima
@@ -107,13 +187,19 @@ class ImageUploaderApp:
         # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
         image_width = screen_width // 3
         image_height = screen_height // 2
+
         
+        window_width = 1500
+        window_height = 700
+        # Izračunajte x i y koordinate za centriranje prozora
+        position_x = int(screen_width/2 - window_width/2-8)
+        position_y = int(screen_height/2 - window_height/2-40)
 
-        # Postavljamo dimenzije prozora tako da ne prelazi preko trake sa zadacima
+        # Postavite geometriju prozora
+        self.root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
-        # Podešavamo dimenzije prozora
-        root.geometry("1400x700")
-       
+
+
 
         # Kreiraj okvir za lijevu stranu (serijsko izvršavanje)
         self.left_frame = tk.Frame(root, bg='#FFF8DC')
@@ -1056,5 +1142,5 @@ class ImageUploaderApp:
  
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ImageUploaderApp(root)
+    app = StartPage(root)
     root.mainloop()
