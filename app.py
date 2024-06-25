@@ -112,19 +112,26 @@ class StartPage:
         # btn_auto_process.pack(side=tk.RIGHT, padx=(10, 20), pady=(20, 10))  # Razmaci od 10 piksela sa leve i desne strane, 20 piksela gore i dole
 
         # Dugme za manuelno biranje        
-        btn_open_page = ttk.Button(self.root, text="Manuelno biranje", command=self.open_new_page)         
-        btn_open_page.grid(row=0, column=0, padx=(20, 10), pady=(20, 10))         
+        btn_open_page = ttk.Button(self.root, text="Manuelno biranje", command=self.open_manual_page)         
+        btn_open_page.grid(row=4, column=0, padx=(20, 10), pady=(20, 10))         
         # Dugme za automatski izbor načina obrade       
         btn_auto_process = ttk.Button(self.root, text="Automatsko biranje", command=self.auto_select_processing)         
-        btn_auto_process.grid(row=1, column=0, padx=(20, 10), pady=(20, 10))
+        btn_auto_process.grid(row=5, column=0, padx=(20, 10), pady=(20, 10))
 
     def auto_select_processing(self):
         # Dodajte ovde funkcionalnost za automatski izbor načina obrade
         print("Automatski izbor načina obrade")
-
-    def open_new_page(self):
         self.main_window = tk.Toplevel(self.root)
-        self.main_window.title("Nova Stranica")
+        self.main_window.title("Automatsko izvrsavanje")
+        self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.image_app = AutomaticEditingWin(self.main_window) 
+        # Dodajte elemente ili funkcionalnosti na novu stranicu
+        self.root.withdraw()
+        
+
+    def open_manual_page(self):
+        self.main_window = tk.Toplevel(self.root)
+        self.main_window.title("Manuelno izvrsavanje")
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.image_app = ImageUploaderApp(self.main_window) 
         # Dodajte elemente ili funkcionalnosti na novu stranicu
@@ -134,6 +141,9 @@ class StartPage:
         self.root = root
         self.root.configure(bg='#F1E5D1')  # Postavi boju pozadine na lila
         self.root.resizable(False, False)
+
+        icon = PhotoImage(file='icon.png')
+        self.root.iconphoto(False, icon)
         # self.root.wm_attributes("-toolwindow", 1)
         #self.root.state('zoomed')
         window_width = 600
@@ -165,7 +175,212 @@ class StartPage:
         # label_artify.pack(side=tk.RIGHT,pady=20)
 
         self.add_button()
+class AutomaticEditingWin:
+    def __init__(self, root):
+        self.root = root
+        self.root.configure(bg='#F1E5D1')  # Postavi boju pozadine na lila
+        self.root.resizable(False, False)
 
+        icon = PhotoImage(file='icon.png')
+        self.root.iconphoto(False, icon)
+        
+        window_width = 1500
+        window_height = 700
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # Izračunajte x i y koordinate za centriranje prozora
+        position_x = int(screen_width/2 - window_width/2-8)
+        position_y = int(screen_height/2 - window_height/2-40)
+
+        # Postavite geometriju prozora
+        self.root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+
+        self.root.title(f"Artify")
+        # # self.prva_klasa = ImageUploaderApp(root)
+     
+        # Kreiraj okvir za lijevu stranu (serijsko izvršavanje)
+        self.frame = tk.Frame(root, bg='#FFF8DC')
+        self.frame.pack(side='top', fill='both', expand=True)
+        self.frame.pack_propagate(0) 
+        label_automatic = tk.Label(self.frame, text="Automatsko izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        label_automatic.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
+
+        label_text=tk.Label(self.frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        label_text.pack(side='bottom', pady=(0, 0))
+
+        #----------------------------------------
+
+        # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
+        image_width = screen_width // 3
+        image_height = screen_height // 2
+
+
+
+        def create_image_frame(parent_frame):
+            image_frame = tk.Frame(parent_frame, bg='#EEA5A6', highlightbackground='#EEA5A6', highlightthickness=4)
+            image_frame.pack(side='left', fill='none', expand=True, padx=10, pady=5)
+ 
+            image_canvas = tk.Canvas(image_frame, width=image_width, height=image_height, bg='#E0AED0')
+            image_canvas.pack(expand=True, fill='both')
+ 
+            image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 16))
+ 
+            return image_canvas
+ 
+        # Kreiraj lijevi okvir za sliku i gumbe (serijsko izvršavanje)
+        self.image_canvas = create_image_frame(self.frame)
+
+        button_frame_canvas = tk.Canvas(self.frame, bg='#FFF8DC', highlightthickness=0)
+        button_frame_canvas.pack(side='right', fill='y', expand=False)
+
+ 
+        button_frame = tk.Frame(button_frame_canvas, bg='#FFF8DC')
+        button_frame.pack(anchor='ne')  # Postavljamo anchor na 'ne' kako bismo postavili button_frame u gornji desni ugao button_frame_canvas
+
+ 
+        button_frame.bind("<Configure>", lambda e: button_frame_canvas.configure(scrollregion=button_frame_canvas.bbox("all")))
+ 
+        # Kreiraj gumbe i grupiraj ih po funkcionalnosti
+        style = ttk.Style()
+        style.configure("Main.TButton", font=("Helvetica", 10), padding=5, background='#D74B76',foreground='#EF9595')
+        style.map("Main.TButton", background=[('active', '#EF9595')])
+        style.map("Main.TButton", foreground=[('active', "#D74B76")])
+
+        # Učitaj ikonu za Undo i Redo
+        undo_icon = Image.open("undo.png")  # Promijenite naziv i putanju prema vašoj ikoni
+        undo_icon = undo_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
+        undo_icon = ImageTk.PhotoImage(undo_icon)
+
+        redo_icon = Image.open("redo.png")  # Promijenite naziv i putanju prema vašoj ikoni
+        redo_icon = redo_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
+        redo_icon = ImageTk.PhotoImage(redo_icon)
+
+        cut_icon = Image.open("cut.png")  # Promijenite naziv i putanju prema vašoj ikoni
+        cut_icon = cut_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
+        cut_icon = ImageTk.PhotoImage(cut_icon)
+
+        flip_icon = Image.open("flip.png")  # Promijenite naziv i putanju prema vašoj ikoni
+        flip_icon = flip_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
+        flip_icon = ImageTk.PhotoImage(flip_icon)
+
+        rotate_icon = Image.open("rotate.png")  # Promijenite naziv i putanju prema vašoj ikoni
+        rotate_icon = rotate_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
+        rotate_icon = ImageTk.PhotoImage(rotate_icon)
+ 
+        buttons_left = [
+            ("Upload Image", self.upload_image),
+            ("Reset", self.reset_image),
+            ("Save Image", self.save_image),
+            ("Increase Saturation", self.increase_saturation),
+            ("Reduce Saturation", self.reduce_saturation),
+            ("Blur", self.blurr),
+            ("Filter Colors", self.apply_complex_filter_serial),
+            ("Filter BW", self.apply_complexBW_filter_serial),
+
+        ]
+ 
+        for text, command in buttons_left:
+            button = ttk.Button(button_frame, text=text, command=command, width=18, style="Main.TButton")
+            button.pack(pady=10)
+        
+        # Kreiraj okvir za cut/rotate
+        cutrotate_frame = tk.Frame(button_frame, bg='#FFF8DC')
+        cutrotate_frame.pack(pady=10)
+
+        cut_button = ttk.Button(cutrotate_frame, image=cut_icon, command=self.start_crop)
+        cut_button.image = cut_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        cut_button.pack(side='left', padx=5, pady=10)
+
+        rotate_button = ttk.Button(cutrotate_frame, image=rotate_icon, command=self.rotate_image)
+        rotate_button.image = rotate_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        rotate_button.pack(side='left', padx=5, pady=10)
+
+        flip_button = ttk.Button(cutrotate_frame, image=flip_icon, command=self.flip)
+        flip_button.image = flip_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        flip_button.pack(side='left', padx=5, pady=10)
+ 
+        def on_enter_blue(event):
+            event.widget.configure(bg='#99cff8', bd=1, width=7, fg="#034b81", relief=tk.SOLID)  # 
+
+
+        def on_leave_blue(event):
+            event.widget.configure(bg='#034b81', bd=1, fg="#99cff8",relief=tk.SOLID)  # 
+
+
+        def on_enter_red(event):
+            event.widget.configure(bg='#f88b83',width=7, fg="#ac1004", bd=1, relief=tk.SOLID)  # 
+
+
+        def on_leave_red(event):
+            event.widget.configure(bg='#ac1004', fg="#f88b83",bd=1, relief=tk.SOLID)  # 
+
+
+        def on_enter_green(event):
+            event.widget.configure(bg='#74fb3a', width=7, fg='#38761d',bd=1, relief=tk.SOLID)  # 
+
+
+        def on_leave_green(event):
+            event.widget.configure(bg='#38761d',fg='#74fb3a', bd=1, relief=tk.SOLID)  # 
+
+        
+        # Kreiraj okvir za boje (serijsko izvršavanje)
+        color_frame = tk.Frame(button_frame, bg='#FFF8DC')
+        color_frame.pack(pady=10)
+ 
+        colors_left = [
+            ("Blue", lambda: self.apply_color_filter('blue'), '#034b81', '#99cff8'),
+            ("Red", lambda: self.apply_color_filter('red'), '#ac1004','#f88b83'),
+            ("Green", lambda: self.apply_color_filter('green'), '#38761d', '#74fb3a')
+        ]
+
+        for text, command, color, fgText in colors_left:
+            button = tk.Button(color_frame, text=text, command=command, width=7, bg=color,fg=fgText, bd=1)
+            button.pack(side='left', padx=5)
+            
+            # Dodaj vezu za događaje miša
+            if color == '#034b81':
+                button.bind('<Enter>', on_enter_blue)
+                button.bind('<Leave>', on_leave_blue)
+            elif color == '#ac1004':
+                button.bind('<Enter>', on_enter_red)
+                button.bind('<Leave>', on_leave_red)
+            elif color == '#38761d':
+                button.bind('<Enter>', on_enter_green)
+                button.bind('<Leave>', on_leave_green)
+
+
+        # Kreiraj okvir za undo/redo 
+        undoredo_frame = tk.Frame(button_frame, bg='#FFF8DC')
+        undoredo_frame.pack(pady=10)
+ 
+        # undoredo_left = [
+        #     ("Undo", self.undo),
+        #     ("Redo", self.redo)
+        # ]
+
+        undo_button = ttk.Button(undoredo_frame, image=undo_icon, command=self.undo)
+        undo_button.image = undo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        undo_button.pack(side='left', padx=5, pady=10)
+
+        redo_button = ttk.Button(undoredo_frame, image=redo_icon, command=self.redo)
+        redo_button.image = redo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        redo_button.pack(side='left', padx=5, pady=10)
+
+         # Inicijalizacija slike i povijesti za serijsko izvršavanje
+        self.image = None
+        self.image_history = []
+        self.history_index = -1
+
+       
+    # def upload_image(self):
+    #     file_path = filedialog.askopenfilename()
+    #     if file_path:
+    #         self.image = Image.open(file_path)
+    #         self.image_history = [self.image.copy()]
+    #         self.history_index = 0
+    #         self.display_image()
 class ImageUploaderApp:
 
     def __init__(self, root):
@@ -178,6 +393,9 @@ class ImageUploaderApp:
         # self.root.wm_attributes("-toolwindow", 1)
         space=(" ")*220
         #self.root.state('zoomed')
+
+        icon = PhotoImage(file='icon.png')
+        self.root.iconphoto(False, icon)
 
         self.root.title(f"{space}Image Editor")
         # Dobavi širinu i visinu ekrana
