@@ -4,10 +4,17 @@ from tkinter import filedialog
 from tkinter import ttk
 from PIL import Image, ImageTk, ImageEnhance, ImageFilter, ImageOps
 import multiprocessing
+from multiprocessing import Pool
 import time
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from tkinter import font
+import psutil
+import numpy as np
 
+def rotate_block(block):
+    """ Rotira jedan blok slike za 90 stepeni """
+    return np.rot90(block)
 
 def apply_color_filter_part(index, part, color):
     r, g, b = part.split()
@@ -111,20 +118,41 @@ class StartPage:
         # btn_auto_process = ttk.Button(self.root, text="Automatsko biranje", command=self.auto_select_processing)
         # btn_auto_process.pack(side=tk.RIGHT, padx=(10, 20), pady=(20, 10))  # Razmaci od 10 piksela sa leve i desne strane, 20 piksela gore i dole
 
+        # Kreirajte stil za dugmad
+        self.style = ttk.Style()
+        self.style.configure("TButton", 
+                             font=("Verdana", 10), 
+                             foreground="#C80036", 
+                             background="#C80036", 
+                             borderwidth=0, 
+                             padding=6)
+        self.style.map("TButton",
+                       background=[("active", "#C80036")],
+                       relief=[("pressed", "sunken")])
+
+        self.canvas = tk.Canvas(self.root, width=self.background_image.width(), height=self.background_image.height())
+        self.canvas.pack(fill="both", expand=True)
+        
+        # Postavite sliku kao pozadinu
+        self.canvas.create_image(0, 0, image=self.background_image, anchor="nw")
         # Dugme za manuelno biranje        
-        btn_open_page = ttk.Button(self.root, text="Manuelno biranje", command=self.open_manual_page)         
-        btn_open_page.grid(row=4, column=0, padx=(20, 10), pady=(20, 10))         
+        btn_open_page = ttk.Button(self.root, text="Manuelno biranje", command=self.open_manual_page, style="TButton")         
+        # btn_open_page.grid(row=4, column=0, padx=(20, 10), pady=(20, 10))             
+        self.canvas.create_window(450, 150, anchor="w", window=btn_open_page)  # Postavite dugme na kanvasu
+
         # Dugme za automatski izbor načina obrade       
-        btn_auto_process = ttk.Button(self.root, text="Automatsko biranje", command=self.auto_select_processing)         
-        btn_auto_process.grid(row=5, column=0, padx=(20, 10), pady=(20, 10))
+        btn_auto_process = ttk.Button(self.root, text="Automatsko biranje", command=self.auto_select_processing, style="TButton")         
+        # btn_auto_process.grid(row=5, column=0, padx=(20, 10), pady=(20, 10))
+        self.canvas.create_window(445, 250, anchor="w", window=btn_auto_process)  # Postavite dugme na kanvasu
+
 
     def auto_select_processing(self):
         # Dodajte ovde funkcionalnost za automatski izbor načina obrade
-        print("Automatski izbor načina obrade")
+        print("Automatski izbor nacina obrade")
         self.main_window = tk.Toplevel(self.root)
         self.main_window.title("Automatsko izvrsavanje")
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.image_app = AutomaticEditingWin(self.main_window) 
+        self.image_app = ImageUploaderApp(self.main_window, processing_mode) 
         # Dodajte elemente ili funkcionalnosti na novu stranicu
         self.root.withdraw()
         
@@ -133,9 +161,16 @@ class StartPage:
         self.main_window = tk.Toplevel(self.root)
         self.main_window.title("Manuelno izvrsavanje")
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.image_app = ImageUploaderApp(self.main_window) 
+        self.image_app = ImageUploaderApp(self.main_window, "Manual") 
         # Dodajte elemente ili funkcionalnosti na novu stranicu
         self.root.withdraw()
+
+    def add_artify_text(self):
+        # Kreiranje fonta
+        custom_font = font.Font(family="Lucida Handwriting", size=38, weight="bold")
+
+        # Nacrtajte tekst na kanvasu
+        self.canvas.create_text(330, 200, text="Artify", font=custom_font, fill="white", anchor="center")
 
     def __init__(self, root):
         self.root = root
@@ -161,11 +196,11 @@ class StartPage:
 
      
             # Učitavanje slike za pozadinu
-        background_image = tk.PhotoImage(file="pozNovo.png")
+        self.background_image = tk.PhotoImage(file="pozNovo.png")
 
         # Postavljanje pozadine koristeći Label widget
-        background_label = tk.Label(self.root, image=background_image)
-        background_label.image = background_image  # Ovo je važno začuvanje reference na sliku
+        background_label = tk.Label(self.root, image=self.background_image)
+        background_label.image = self.background_image  # Ovo je važno začuvanje reference na sliku
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
 
@@ -175,216 +210,12 @@ class StartPage:
         # label_artify.pack(side=tk.RIGHT,pady=20)
 
         self.add_button()
-class AutomaticEditingWin:
-    def __init__(self, root):
-        self.root = root
-        self.root.configure(bg='#F1E5D1')  # Postavi boju pozadine na lila
-        self.root.resizable(False, False)
+        self.add_artify_text()
 
-        icon = PhotoImage(file='icon.png')
-        self.root.iconphoto(False, icon)
-        
-        window_width = 1500
-        window_height = 700
-
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-
-        # Izračunajte x i y koordinate za centriranje prozora
-        position_x = int(screen_width/2 - window_width/2-8)
-        position_y = int(screen_height/2 - window_height/2-40)
-
-        # Postavite geometriju prozora
-        self.root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
-
-        self.root.title(f"Artify")
-        # # self.prva_klasa = ImageUploaderApp(root)
-     
-        # Kreiraj okvir za lijevu stranu (serijsko izvršavanje)
-        self.frame = tk.Frame(root, bg='#FFF8DC')
-        self.frame.pack(side='top', fill='both', expand=True)
-        self.frame.pack_propagate(0) 
-        label_automatic = tk.Label(self.frame, text="Automatsko izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
-        label_automatic.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
-
-        label_text=tk.Label(self.frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
-        label_text.pack(side='bottom', pady=(0, 0))
-
-        #----------------------------------------
-
-        # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
-        image_width = screen_width // 3
-        image_height = screen_height // 2
-
-
-
-        def create_image_frame(parent_frame):
-            image_frame = tk.Frame(parent_frame, bg='#EEA5A6', highlightbackground='#EEA5A6', highlightthickness=4)
-            image_frame.pack(side='left', fill='none', expand=True, padx=10, pady=5)
- 
-            image_canvas = tk.Canvas(image_frame, width=image_width, height=image_height, bg='#E0AED0')
-            image_canvas.pack(expand=True, fill='both')
- 
-            image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 16))
- 
-            return image_canvas
- 
-        # Kreiraj lijevi okvir za sliku i gumbe (serijsko izvršavanje)
-        self.image_canvas = create_image_frame(self.frame)
-
-        button_frame_canvas = tk.Canvas(self.frame, bg='#FFF8DC', highlightthickness=0)
-        button_frame_canvas.pack(side='right', fill='y', expand=False)
-
- 
-        button_frame = tk.Frame(button_frame_canvas, bg='#FFF8DC')
-        button_frame.pack(anchor='ne')  # Postavljamo anchor na 'ne' kako bismo postavili button_frame u gornji desni ugao button_frame_canvas
-
- 
-        button_frame.bind("<Configure>", lambda e: button_frame_canvas.configure(scrollregion=button_frame_canvas.bbox("all")))
- 
-        # Kreiraj gumbe i grupiraj ih po funkcionalnosti
-        style = ttk.Style()
-        style.configure("Main.TButton", font=("Helvetica", 10), padding=5, background='#D74B76',foreground='#EF9595')
-        style.map("Main.TButton", background=[('active', '#EF9595')])
-        style.map("Main.TButton", foreground=[('active', "#D74B76")])
-
-        # Učitaj ikonu za Undo i Redo
-        undo_icon = Image.open("undo.png")  # Promijenite naziv i putanju prema vašoj ikoni
-        undo_icon = undo_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
-        undo_icon = ImageTk.PhotoImage(undo_icon)
-
-        redo_icon = Image.open("redo.png")  # Promijenite naziv i putanju prema vašoj ikoni
-        redo_icon = redo_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
-        redo_icon = ImageTk.PhotoImage(redo_icon)
-
-        cut_icon = Image.open("cut.png")  # Promijenite naziv i putanju prema vašoj ikoni
-        cut_icon = cut_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
-        cut_icon = ImageTk.PhotoImage(cut_icon)
-
-        flip_icon = Image.open("flip.png")  # Promijenite naziv i putanju prema vašoj ikoni
-        flip_icon = flip_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
-        flip_icon = ImageTk.PhotoImage(flip_icon)
-
-        rotate_icon = Image.open("rotate.png")  # Promijenite naziv i putanju prema vašoj ikoni
-        rotate_icon = rotate_icon.resize((20, 20), Image.LANCZOS)  # Prilagodi veličinu ikone koristeći LANCZOS filter
-        rotate_icon = ImageTk.PhotoImage(rotate_icon)
- 
-        buttons_left = [
-            ("Upload Image", self.upload_image),
-            ("Reset", self.reset_image),
-            ("Save Image", self.save_image),
-            ("Increase Saturation", self.increase_saturation),
-            ("Reduce Saturation", self.reduce_saturation),
-            ("Blur", self.blurr),
-            ("Filter Colors", self.apply_complex_filter_serial),
-            ("Filter BW", self.apply_complexBW_filter_serial),
-
-        ]
- 
-        for text, command in buttons_left:
-            button = ttk.Button(button_frame, text=text, command=command, width=18, style="Main.TButton")
-            button.pack(pady=10)
-        
-        # Kreiraj okvir za cut/rotate
-        cutrotate_frame = tk.Frame(button_frame, bg='#FFF8DC')
-        cutrotate_frame.pack(pady=10)
-
-        cut_button = ttk.Button(cutrotate_frame, image=cut_icon, command=self.start_crop)
-        cut_button.image = cut_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
-        cut_button.pack(side='left', padx=5, pady=10)
-
-        rotate_button = ttk.Button(cutrotate_frame, image=rotate_icon, command=self.rotate_image)
-        rotate_button.image = rotate_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
-        rotate_button.pack(side='left', padx=5, pady=10)
-
-        flip_button = ttk.Button(cutrotate_frame, image=flip_icon, command=self.flip)
-        flip_button.image = flip_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
-        flip_button.pack(side='left', padx=5, pady=10)
- 
-        def on_enter_blue(event):
-            event.widget.configure(bg='#99cff8', bd=1, width=7, fg="#034b81", relief=tk.SOLID)  # 
-
-
-        def on_leave_blue(event):
-            event.widget.configure(bg='#034b81', bd=1, fg="#99cff8",relief=tk.SOLID)  # 
-
-
-        def on_enter_red(event):
-            event.widget.configure(bg='#f88b83',width=7, fg="#ac1004", bd=1, relief=tk.SOLID)  # 
-
-
-        def on_leave_red(event):
-            event.widget.configure(bg='#ac1004', fg="#f88b83",bd=1, relief=tk.SOLID)  # 
-
-
-        def on_enter_green(event):
-            event.widget.configure(bg='#74fb3a', width=7, fg='#38761d',bd=1, relief=tk.SOLID)  # 
-
-
-        def on_leave_green(event):
-            event.widget.configure(bg='#38761d',fg='#74fb3a', bd=1, relief=tk.SOLID)  # 
-
-        
-        # Kreiraj okvir za boje (serijsko izvršavanje)
-        color_frame = tk.Frame(button_frame, bg='#FFF8DC')
-        color_frame.pack(pady=10)
- 
-        colors_left = [
-            ("Blue", lambda: self.apply_color_filter('blue'), '#034b81', '#99cff8'),
-            ("Red", lambda: self.apply_color_filter('red'), '#ac1004','#f88b83'),
-            ("Green", lambda: self.apply_color_filter('green'), '#38761d', '#74fb3a')
-        ]
-
-        for text, command, color, fgText in colors_left:
-            button = tk.Button(color_frame, text=text, command=command, width=7, bg=color,fg=fgText, bd=1)
-            button.pack(side='left', padx=5)
-            
-            # Dodaj vezu za događaje miša
-            if color == '#034b81':
-                button.bind('<Enter>', on_enter_blue)
-                button.bind('<Leave>', on_leave_blue)
-            elif color == '#ac1004':
-                button.bind('<Enter>', on_enter_red)
-                button.bind('<Leave>', on_leave_red)
-            elif color == '#38761d':
-                button.bind('<Enter>', on_enter_green)
-                button.bind('<Leave>', on_leave_green)
-
-
-        # Kreiraj okvir za undo/redo 
-        undoredo_frame = tk.Frame(button_frame, bg='#FFF8DC')
-        undoredo_frame.pack(pady=10)
- 
-        # undoredo_left = [
-        #     ("Undo", self.undo),
-        #     ("Redo", self.redo)
-        # ]
-
-        undo_button = ttk.Button(undoredo_frame, image=undo_icon, command=self.undo)
-        undo_button.image = undo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
-        undo_button.pack(side='left', padx=5, pady=10)
-
-        redo_button = ttk.Button(undoredo_frame, image=redo_icon, command=self.redo)
-        redo_button.image = redo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
-        redo_button.pack(side='left', padx=5, pady=10)
-
-         # Inicijalizacija slike i povijesti za serijsko izvršavanje
-        self.image = None
-        self.image_history = []
-        self.history_index = -1
-
-       
-    # def upload_image(self):
-    #     file_path = filedialog.askopenfilename()
-    #     if file_path:
-    #         self.image = Image.open(file_path)
-    #         self.image_history = [self.image.copy()]
-    #         self.history_index = 0
-    #         self.display_image()
 class ImageUploaderApp:
 
-    def __init__(self, root):
-        self.pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    def __init__(self, root, param):
+        self.pool = multiprocessing.Pool(processes=psutil.cpu_count(logical=False))
         # print(self.pool)
         self.root = root
   # Maksimiziraj prozor da pokrije ekran osim trake sa zadacima
@@ -408,7 +239,7 @@ class ImageUploaderApp:
 
         
         window_width = 1500
-        window_height = 700
+        window_height = 740
         # Izračunajte x i y koordinate za centriranje prozora
         position_x = int(screen_width/2 - window_width/2-8)
         position_y = int(screen_height/2 - window_height/2-40)
@@ -426,8 +257,8 @@ class ImageUploaderApp:
         label_serial = tk.Label(self.left_frame, text="Serijsko izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
         label_serial.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
 
-        label_text=tk.Label(self.left_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
-        label_text.pack(side='bottom', pady=(0, 0))
+        self.label_text=tk.Label(self.left_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        self.label_text.pack(side='bottom', pady=(0, 0))
 
         # Kreiraj okvir za desnu stranu (paralelno izvršavanje)
         self.right_frame = tk.Frame(root, bg='#FFF8DC')
@@ -437,8 +268,8 @@ class ImageUploaderApp:
         # Kreiranje natpisa "Paralelno izvršavanje"
         label_parallel = tk.Label(self.right_frame, text="Paralelno izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#B51B75')
         label_parallel.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
-        label_text_par=tk.Label(self.right_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
-        label_text_par.pack(side='bottom', pady=(0, 0))
+        self.label_text_par=tk.Label(self.right_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        self.label_text_par.pack(side='bottom', pady=(0, 0))
  
         # Dodaj razmak između okvira
         #ttk.Separator(root, orient='vertical').pack(side='left', fill='y', padx=10)
@@ -538,7 +369,7 @@ class ImageUploaderApp:
         flip_button = ttk.Button(cutrotate_frame_left, image=flip_icon, command=self.flip)
         flip_button.image = flip_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
         flip_button.pack(side='left', padx=5, pady=10)
- 
+
         def on_enter_blue(event):
             event.widget.configure(bg='#99cff8', bd=1, width=7, fg="#034b81", relief=tk.SOLID)  # 
 
@@ -658,11 +489,11 @@ class ImageUploaderApp:
             ("Upload Image", self.upload_image_parallel),
             ("Reset", self.reset_image_parallel),
             ("Save Image", self.save_image_parallel),
-            ("Increase Saturation", lambda: self.increase_saturation_parallel(multiprocessing.cpu_count())),
-            ("Reduce Saturation", lambda: self.reduce_saturation_parallel(multiprocessing.cpu_count())),
+            ("Increase Saturation", lambda: self.increase_saturation_parallel(psutil.cpu_count(logical=False))),
+            ("Reduce Saturation", lambda: self.reduce_saturation_parallel(psutil.cpu_count(logical=False))),
             ("Blur", self.blurr_parallel),
-            ("Filter Colors", lambda:self.apply_complex_filter_parallel(multiprocessing.cpu_count())),
-            ("Filter BW", lambda:self.apply_complexBW_filter_parallel(multiprocessing.cpu_count())),
+            ("Filter Colors", lambda:self.apply_complex_filter_parallel(psutil.cpu_count(logical=False))),
+            ("Filter BW", lambda:self.apply_complexBW_filter_parallel(psutil.cpu_count(logical=False))),
 
         ]
 
@@ -738,6 +569,11 @@ class ImageUploaderApp:
         self.image_parallel = None
         self.image_history_parallel = []
         self.history_index_parallel = -1
+
+        if(param=="Parallel"):
+            self.left_frame.destroy()
+        elif(param=="Serial"):
+            self.right_frame.destroy()
  
  
     def upload_image(self):
@@ -890,6 +726,7 @@ class ImageUploaderApp:
         end_time = time.time()  # End timing
         duration = end_time - start_time
         print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
+        
 
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
@@ -1014,6 +851,7 @@ class ImageUploaderApp:
         end_time = time.time()
         duration = end_time - start_time
         print(f"Time taken to apply complex filter serial: {duration:.4f} seconds")
+        self.label_text.config(text=f"Time taken to apply complex filter serial: {duration:.4f} seconds")
 
         self.update_history()
         self.display_image()
@@ -1080,6 +918,7 @@ class ImageUploaderApp:
         end_time = time.time()  # End timing
         duration = end_time - start_time
         print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
+        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
 
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
@@ -1115,6 +954,7 @@ class ImageUploaderApp:
         end_time = time.time()  # End timing
         duration = end_time - start_time
         print(f"Time taken to apply complex BW filter parallel: {duration:.4f} seconds")
+        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
 
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
@@ -1138,7 +978,8 @@ class ImageUploaderApp:
 
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
+            print(f"Time taken to apply complex filter serial: {duration:.4f} seconds")
+            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
 
             self.update_history()
             self.display_image()
@@ -1146,7 +987,7 @@ class ImageUploaderApp:
     def apply_color_filter_parallel(self, color):
         if self.image_parallel:
             # Podelite sliku na delove
-            num_parts = multiprocessing.cpu_count()  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
+            num_parts = psutil.cpu_count(logical=False) # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
             overlap = 10
             image_parts_with_indices = self.split_image(num_parts, overlap)
 
@@ -1172,6 +1013,7 @@ class ImageUploaderApp:
             end_time = time.time()  # End timing
             duration = end_time - start_time
             print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
+            self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
             
             # Ažuriranje istorije i prikazivanje finalne slike
             self.update_history_parallel()
@@ -1181,19 +1023,61 @@ class ImageUploaderApp:
     def rotate_image(self):
         if self.image:
             img=self.image
-            height=img.height
-            width=img.width
             img = img.transpose(Image.ROTATE_90)
             self.image=img
-            self.update_history()
- 
+            self.update_history() 
             self.display_image()
- 
+    def merge_image_rot(self, image_parts, part_height, overlap):
+        if not image_parts:
+            return None
+
+        width = image_parts[0].size[0]
+        total_height = part_height * len(image_parts)
+        merged_image = Image.new("RGB", (width, total_height))
+
+        for i, part in enumerate(image_parts):
+            if i == 0:
+                merged_image.paste(part.crop((0, 0, width, part_height + overlap)), (0, i * part_height))
+            elif i == len(image_parts) - 1:
+                merged_image.paste(part.crop((0, overlap, width, part.size[1])), (0, i * part_height))
+            else:
+                merged_image.paste(part.crop((0, overlap, width, part_height + overlap)), (0, i * part_height))
+
+        return merged_image
     def rotate_image_parallel(self): # ADDED
-        if self.image_parallel: # ADDED
-            self.image_parallel = self.image_parallel.rotate(90,resample=Image.LANCZOS, expand=True) # ADDED
-            self.update_history_parallel() # ADDED
-            self.display_image_parallel() # ADDED
+        # if self.image_parallel: # ADDED
+        #     self.image_parallel = self.image_parallel.rotate(90,resample=Image.LANCZOS, expand=True) # ADDED
+        #     self.update_history_parallel() # ADDED
+        # Otvori sliku i konvertuj je u numpy array
+        angle=90
+        num_processes=psutil.cpu_count(logical=False)
+        img_array = np.array(self.image_parallel)
+        # Odredi dimenzije slike
+    # Odredi dimenzije slike
+        height, width, channels = img_array.shape
+        # Podeli sliku na blokove (npr. 4 bloka)
+        num_blocks = int(np.sqrt(num_processes))
+        block_height = height // num_blocks
+        block_width = width // num_blocks
+        # Kreiraj listu blokova
+        blocks = []
+        for i in range(num_blocks):
+            for j in range(num_blocks):
+                block = img_array[i * block_height:(i + 1) * block_height, j * block_width:(j + 1) * block_width]
+                blocks.append(block)
+        # Koristi multiprocessing za paralelnu rotaciju blokova
+        with multiprocessing.Pool(num_processes) as pool:
+            rotated_blocks = pool.map(rotate_block, blocks)
+        # Sastavi rotirane blokove nazad u jednu sliku
+        rotated_image = np.zeros((width, height, channels), dtype=img_array.dtype)
+        for i in range(num_blocks):
+            for j in range(num_blocks):
+                rotated_block = rotated_blocks[i * num_blocks + j]
+                rotated_block_height, rotated_block_width, _ = rotated_block.shape
+                rotated_image[j * rotated_block_width:(j + 1) * rotated_block_width, (num_blocks - i - 1) * rotated_block_height:(num_blocks - i) * rotated_block_height] = rotated_block
+        # Konvertuj nazad u Image objekat i sačuvaj
+        self.image_parallel = Image.fromarray(rotated_image)
+        self.display_image_parallel()
  
     def start_crop(self):
         if self.image:
@@ -1312,7 +1196,7 @@ class ImageUploaderApp:
     def flip_parallel(self):
         if self.image_parallel:
             # Podelite sliku na delove
-            num_parts = multiprocessing.cpu_count()  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
+            num_parts = psutil.cpu_count(logical=False)  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
             overlap = 10
             image_parts_with_indices = self.split_image(num_parts, overlap)
 
@@ -1356,9 +1240,23 @@ class ImageUploaderApp:
 
             self.display_image_parallel()
 
+def get_cpu_info():
+    cpu_count = psutil.cpu_count(logical=False)  # Broj fizičkih jezgara
+    cpu_usage = psutil.cpu_percent(interval=1)  # Procenat opterećenja CPU-a u poslednjoj sekundi
+    print(cpu_usage)
+    print(cpu_count)
+    return cpu_count, cpu_usage
 
+def choose_processing_mode(cpu_count, cpu_usage, threshold=50):
+    # Provera da li je opterećenje CPU-a manje od praga
+    if cpu_usage < threshold:
+        return "Parallel" if cpu_count > 1 else "Serial"
+    else:
+        return "Serial"
  
 if __name__ == "__main__":
     root = tk.Tk()
     app = StartPage(root)
+    num_cores, cpu_load = get_cpu_info()
+    processing_mode = choose_processing_mode(num_cores, cpu_load)
     root.mainloop()
