@@ -11,10 +11,13 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from tkinter import font
 import psutil
 import numpy as np
+import tempfile
+from tkinter import messagebox
 
-def rotate_block(block):
-    """ Rotira jedan blok slike za 90 stepeni """
-    return np.rot90(block)
+
+# def rotate_block(block):
+#     """ Rotira jedan blok slike za 90 stepeni """
+#     return np.rot90(block)
 
 def apply_color_filter_part(index, part, color):
     r, g, b = part.split()
@@ -27,8 +30,11 @@ def apply_color_filter_part(index, part, color):
     return index, Image.merge('RGB', (r, g, b))
 
 def flip_image_part(index, part):
-    # Ovde bi se vršila obrada dela slike (npr. flip_left_right)
     return index, part.transpose(Image.FLIP_LEFT_RIGHT)
+
+def blur_image_part(index, part):
+    part = part.filter((ImageFilter.GaussianBlur(radius=8)))
+    return index, part
 
 
 def process_part( index, part):
@@ -122,12 +128,12 @@ class StartPage:
         self.style = ttk.Style()
         self.style.configure("TButton", 
                              font=("Verdana", 10), 
-                             foreground="#C80036", 
-                             background="#C80036", 
+                             foreground="#ea9999", 
+                             background="#e06666", 
                              borderwidth=0, 
                              padding=6)
         self.style.map("TButton",
-                       background=[("active", "#C80036")],
+                       background=[("active", "#e06666")],
                        relief=[("pressed", "sunken")])
 
         self.canvas = tk.Canvas(self.root, width=self.background_image.width(), height=self.background_image.height())
@@ -178,7 +184,7 @@ class StartPage:
         self.root.resizable(False, False)
 
         icon = PhotoImage(file='icon.png')
-        self.root.iconphoto(False, icon)
+        self.root.iconphoto(True, icon)
         # self.root.wm_attributes("-toolwindow", 1)
         #self.root.state('zoomed')
         window_width = 600
@@ -225,10 +231,12 @@ class ImageUploaderApp:
         space=(" ")*220
         #self.root.state('zoomed')
 
-        icon = PhotoImage(file='icon.png')
-        self.root.iconphoto(False, icon)
+        # icon = PhotoImage(file='icon.png')
+        # self.root.iconphoto(False, icon)
 
         self.root.title(f"{space}Image Editor")
+        icon= PhotoImage(file='icon.png')
+        self.root.iconphoto(True, icon)
         # Dobavi širinu i visinu ekrana
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -257,7 +265,7 @@ class ImageUploaderApp:
         label_serial = tk.Label(self.left_frame, text="Serijsko izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
         label_serial.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
 
-        self.label_text=tk.Label(self.left_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        self.label_text=tk.Label(self.left_frame, text="", bg='#FFF8DC', font=("Helvetica", 14), fg='#640D6B')
         self.label_text.pack(side='bottom', pady=(0, 0))
 
         # Kreiraj okvir za desnu stranu (paralelno izvršavanje)
@@ -268,7 +276,7 @@ class ImageUploaderApp:
         # Kreiranje natpisa "Paralelno izvršavanje"
         label_parallel = tk.Label(self.right_frame, text="Paralelno izvršavanje", bg='#FFF8DC', font=("Helvetica", 20), fg='#B51B75')
         label_parallel.pack(side='top', pady=(10, 0))  # Postavljanje natpisa na vrh i centriranje horizontalno
-        self.label_text_par=tk.Label(self.right_frame, text="Vrijeme", bg='#FFF8DC', font=("Helvetica", 20), fg='#640D6B')
+        self.label_text_par=tk.Label(self.right_frame, text="", bg='#FFF8DC', font=("Helvetica", 14), fg='#640D6B')
         self.label_text_par.pack(side='bottom', pady=(0, 0))
  
         # Dodaj razmak između okvira
@@ -290,11 +298,19 @@ class ImageUploaderApp:
         def create_image_frame(parent_frame):
             image_frame = tk.Frame(parent_frame, bg='#EEA5A6', highlightbackground='#EEA5A6', highlightthickness=4)
             image_frame.pack(side='left', fill='none', expand=True, padx=10, pady=5)
- 
-            image_canvas = tk.Canvas(image_frame, width=image_width, height=image_height, bg='#E0AED0')
+
+            image_canvas = tk.Canvas(image_frame, width=image_width, height=image_height)
             image_canvas.pack(expand=True, fill='both')
- 
-            image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 16))
+
+            image1 = Image.open("slika1.png")
+            photo1 = ImageTk.PhotoImage(image1)
+            
+            # Spremanje reference na PhotoImage kako bi se sačuvala od prikupljanja smeća
+            image_canvas.image = photo1
+            
+            image_canvas.create_image(0, 0, anchor=tk.NW, image=photo1)
+
+            image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
  
             return image_canvas
  
@@ -340,20 +356,32 @@ class ImageUploaderApp:
  
         buttons_left = [
             ("Upload Image", self.upload_image),
-            ("Reset", self.reset_image),
+            ("Reset Filters", self.reset_image),
             ("Save Image", self.save_image),
+            ("Close Image", self.close_image),
             ("Increase Saturation", self.increase_saturation),
-            ("Reduce Saturation", self.reduce_saturation),
+            ("Reduce Saturation", self.reduce_saturation)            
+        ]
+        
+        style1 = ttk.Style()
+        style1.configure("Complex.TButton", font=("Helvetica", 10), padding=5, background='#541be5',foreground='#674ea7')
+        style1.map("Complex.TButton", background=[('active', '#674ea7')])
+        style1.map("Complex.TButton", foreground=[('active', "#541be5")])
+
+
+        buttons_complex_left= [
             ("Blur", self.blurr),
             ("Filter Colors", self.apply_complex_filter_serial),
-            ("Filter BW", self.apply_complexBW_filter_serial),
-
+            ("Filter BW", self.apply_complexBW_filter_serial)
         ]
  
         for text, command in buttons_left:
             button = ttk.Button(button_frame, text=text, command=command, width=18, style="Main.TButton")
-            button.pack(pady=10)
-        
+            button.pack(pady=5)
+        for text, command in buttons_complex_left:
+            button = ttk.Button(button_frame, text=text, command=command, width=18, style="Complex.TButton")
+            button.pack(pady=5)
+
         # Kreiraj okvir za cut/rotate
         cutrotate_frame_left = tk.Frame(button_frame, bg='#FFF8DC')
         cutrotate_frame_left.pack(pady=10)
@@ -487,22 +515,35 @@ class ImageUploaderApp:
         # Kreiraj gumbe i grupiraj ih po funkcionalnosti
         buttons_right = [
             ("Upload Image", self.upload_image_parallel),
-            ("Reset", self.reset_image_parallel),
+            ("Reset Filters", self.reset_image_parallel),
             ("Save Image", self.save_image_parallel),
+            ("Close Image", self.close_image_parallel),
             ("Increase Saturation", lambda: self.increase_saturation_parallel(psutil.cpu_count(logical=False))),
             ("Reduce Saturation", lambda: self.reduce_saturation_parallel(psutil.cpu_count(logical=False))),
+            
+        ]
+
+        style1 = ttk.Style()
+        style1.configure("Complex.TButton", font=("Helvetica", 10), padding=5, background='#541be5',foreground='#674ea7')
+        style1.map("Complex.TButton", background=[('active', '#674ea7')])
+        style1.map("Complex.TButton", foreground=[('active', "#541be5")])
+
+
+        buttons_complex_right= [
             ("Blur", self.blurr_parallel),
             ("Filter Colors", lambda:self.apply_complex_filter_parallel(psutil.cpu_count(logical=False))),
             ("Filter BW", lambda:self.apply_complexBW_filter_parallel(psutil.cpu_count(logical=False))),
-
         ]
 
-        
- 
  
         for text, command in buttons_right:
             button = ttk.Button(button_frame_parallel, text=text, command=command, width=18, style="Main.TButton")
-            button.pack(pady=10)
+            button.pack(pady=5)
+
+        for text, command in buttons_complex_right:
+            button = ttk.Button(button_frame_parallel, text=text, command=command, width=18, style="Complex.TButton")
+            button.pack(pady=5)
+
         
          # Kreiraj okvir za cut/rotate
         cutrotate_frame_right = tk.Frame(button_frame_parallel, bg='#FFF8DC')
@@ -556,7 +597,7 @@ class ImageUploaderApp:
         undo_button_parallel.pack(side='left', padx=5, pady=10)
 
         redo_button_parallel = ttk.Button(undoredo_frame_right, image=redo_icon, command=self.redo_parallel)
-        redo_button.image = redo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
+        redo_button_parallel.image = redo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
         redo_button_parallel.pack(side='left', padx=5, pady=10)
  
         
@@ -581,16 +622,27 @@ class ImageUploaderApp:
         if file_path:
             self.image = Image.open(file_path)
             self.image_history = [self.image.copy()]
+            imgwidth=self.image.width
+            imgheight=self.image.height
+
             self.history_index = 0
             self.display_image()
+            self.label_text.config(text=f"Dimenzije slike {imgwidth}x{imgheight}.")
+
  
     def upload_image_parallel(self): # ADDED
         file_path = filedialog.askopenfilename() # ADDED
         if file_path: # ADDED
             self.image_parallel = Image.open(file_path) # ADDED
             self.image_history_parallel = [self.image_parallel.copy()] # ADDED
+
+            imgwidth=self.image_parallel.width
+            imgheight=self.image_parallel.height
+
             self.history_index_parallel = 0 # ADDED
             self.display_image_parallel() # ADDED
+            self.label_text_par.config(text=f"Dimenzije slike {imgwidth}x{imgheight}.")
+
  
     def display_image(self):
         if self.image:
@@ -622,7 +674,72 @@ class ImageUploaderApp:
             self.image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=self.photo)
  
  
+    def close_image(self):
+        if self.image:
+            self.image_canvas.delete("all")    
+
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
  
+            # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
+            image_width = screen_width // 3
+            image_height = screen_height // 2
+
+            self.image_canvas.config(width=image_width, height=image_height)
+
+            self.image_canvas.pack(expand=True, fill='both')
+
+            image1 = Image.open("slika1.png")
+            photo1 = ImageTk.PhotoImage(image1)
+            
+            # Spremanje reference na PhotoImage kako bi se sačuvala od prikupljanja smeća
+            self.image_canvas.image = photo1
+            
+            self.image_canvas.create_image(0, 0, anchor=tk.NW, image=photo1)
+
+
+            self.image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
+
+
+
+            self.label_text.config(text="Slika uklonjena")
+            # self.history_index=-1
+            self.history_index=0
+            self.image_history = [None]
+
+
+    def close_image_parallel(self):
+        if self.image_parallel:
+            self.image_canvas_parallel.delete("all")    
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+ 
+            # Izračunaj dimenzije za sliku tako da zauzima jednu trećinu visine ekrana
+            image_width = screen_width // 3
+            image_height = screen_height // 2
+
+            self.image_canvas_parallel.config(width=image_width, height=image_height)
+
+
+            self.image_canvas_parallel.pack(expand=True, fill='both')
+
+            image1 = Image.open("slika1.png")
+            photo1 = ImageTk.PhotoImage(image1)
+            
+            # Spremanje reference na PhotoImage kako bi se sačuvala od prikupljanja smeća
+            self.image_canvas_parallel.image = photo1
+            
+            self.image_canvas_parallel.create_image(0, 0, anchor=tk.NW, image=photo1)
+
+
+            self.image_canvas_parallel.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
+            self.label_text_par.config(text="Slika uklonjena")
+
+            self.history_index_parallel=0
+            self.image_history_parallel = [None]
+
+
+
     def display_image_parallel(self): # ADDED
         if self.image_parallel:
             img=self.image_parallel
@@ -657,24 +774,35 @@ class ImageUploaderApp:
             self.image = self.image_history[0]
             self.history_index = 0
             self.display_image()
+            if self.image:
+                self.label_text.config(text="Filteri resetovani")
+
  
     def reset_image_parallel(self): # ADDED
         if self.image_history_parallel: # ADDED
             self.image_parallel = self.image_history_parallel[0] # ADDED
             self.history_index_parallel = 0 # ADDED
             self.display_image_parallel() # ADDED
+            if self.image_parallel:
+                self.label_text_par.config(text="Filteri resetovani")
+
  
     def save_image(self):
         if self.image:
             file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
             if file_path:
                 self.image.save(file_path)
+                self.label_text.config(text=f"Slika {file_path} je sačuvana")
+                messagebox.showinfo("Obavještenje", f"Slika je sačuvana na lokaciju {file_path}")
  
     def save_image_parallel(self): # ADDED
         if self.image_parallel: # ADDED
             file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")]) # ADDED
             if file_path: # ADDED
                 self.image_parallel.save(file_path) # ADDED
+                self.label_text_par.config(text=f"Slika {file_path} je sačuvana")
+                messagebox.showinfo("Obavještenje", f"Slika je sačuvana na lokaciju {file_path}")
+
  
     def increase_saturation(self):
         if self.image:
@@ -683,7 +811,8 @@ class ImageUploaderApp:
             self.image = enhancer.enhance(1.5)
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to apply saturation serial: {duration:.4f} seconds")
+            # print(f"Time taken to apply saturation serial: {duration:.4f} seconds")
+            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
             self.update_history()
             self.display_image()
  
@@ -725,9 +854,9 @@ class ImageUploaderApp:
 
         end_time = time.time()  # End timing
         duration = end_time - start_time
-        print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
+        # print(f"Time taken to apply saturation parallel: {duration:.4f} seconds")
         
-
+        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
         self.display_image_parallel()
@@ -775,7 +904,8 @@ class ImageUploaderApp:
             self.image = enhancer.enhance(0.5)
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to apply saturation serial: {duration:.4f} seconds")
+            # print(f"Time taken to apply saturation serial: {duration:.4f} seconds")
+            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
             self.update_history()
             self.display_image()
  
@@ -811,8 +941,8 @@ class ImageUploaderApp:
 
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to reduce saturation parallel: {duration:.4f} seconds")
-
+            # print(f"Time taken to reduce saturation parallel: {duration:.4f} seconds")
+            self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
             # Ažurirajte istoriju i prikažite finalnu sliku
             self.update_history_parallel()
             self.display_image_parallel()
@@ -850,9 +980,8 @@ class ImageUploaderApp:
 
         end_time = time.time()
         duration = end_time - start_time
-        print(f"Time taken to apply complex filter serial: {duration:.4f} seconds")
-        self.label_text.config(text=f"Time taken to apply complex filter serial: {duration:.4f} seconds")
-
+        # print(f"Time taken to apply complex filter serial: {duration:.4f} seconds")
+        self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
         self.update_history()
         self.display_image()
     def apply_complexBW_filter_serial(self):
@@ -884,8 +1013,8 @@ class ImageUploaderApp:
 
         end_time = time.time()
         duration = end_time - start_time
-        print(f"Time taken to apply complex BW filter serial: {duration:.4f} seconds")
-
+        # print(f"Time taken to apply complex BW filter serial: {duration:.4f} seconds")
+        self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
         self.update_history()
         self.display_image()
     def apply_complex_filter_parallel(self, num_parts):
@@ -917,8 +1046,7 @@ class ImageUploaderApp:
         
         end_time = time.time()  # End timing
         duration = end_time - start_time
-        print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
-        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
+        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
 
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
@@ -953,8 +1081,7 @@ class ImageUploaderApp:
         
         end_time = time.time()  # End timing
         duration = end_time - start_time
-        print(f"Time taken to apply complex BW filter parallel: {duration:.4f} seconds")
-        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
+        self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
 
         # Ažurirajte istoriju i prikažite finalnu sliku
         self.update_history_parallel()
@@ -978,9 +1105,7 @@ class ImageUploaderApp:
 
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to apply complex filter serial: {duration:.4f} seconds")
-            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
-
+            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
             self.update_history()
             self.display_image()
  
@@ -1012,8 +1137,7 @@ class ImageUploaderApp:
             
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to apply complex filter parallel: {duration:.4f} seconds")
-            self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
+            self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
             
             # Ažuriranje istorije i prikazivanje finalne slike
             self.update_history_parallel()
@@ -1027,57 +1151,66 @@ class ImageUploaderApp:
             self.image=img
             self.update_history() 
             self.display_image()
-    def merge_image_rot(self, image_parts, part_height, overlap):
-        if not image_parts:
-            return None
+            self.label_text.config(text="Slika rotirana za 90 stepeni")
+    # def merge_image_rot(self, image_parts, part_height, overlap):
+    #     if not image_parts:
+    #         return None
 
-        width = image_parts[0].size[0]
-        total_height = part_height * len(image_parts)
-        merged_image = Image.new("RGB", (width, total_height))
+    #     width = image_parts[0].size[0]
+    #     total_height = part_height * len(image_parts)
+    #     merged_image = Image.new("RGB", (width, total_height))
 
-        for i, part in enumerate(image_parts):
-            if i == 0:
-                merged_image.paste(part.crop((0, 0, width, part_height + overlap)), (0, i * part_height))
-            elif i == len(image_parts) - 1:
-                merged_image.paste(part.crop((0, overlap, width, part.size[1])), (0, i * part_height))
-            else:
-                merged_image.paste(part.crop((0, overlap, width, part_height + overlap)), (0, i * part_height))
+    #     for i, part in enumerate(image_parts):
+    #         if i == 0:
+    #             merged_image.paste(part.crop((0, 0, width, part_height + overlap)), (0, i * part_height))
+    #         elif i == len(image_parts) - 1:
+    #             merged_image.paste(part.crop((0, overlap, width, part.size[1])), (0, i * part_height))
+    #         else:
+    #             merged_image.paste(part.crop((0, overlap, width, part_height + overlap)), (0, i * part_height))
 
-        return merged_image
+    #     return merged_image
     def rotate_image_parallel(self): # ADDED
+
+         if self.image_parallel:
+            img=self.image_parallel
+            img = img.transpose(Image.ROTATE_90)
+            self.image_parallel=img
+            self.update_history_parallel() 
+            self.display_image_parallel()
+            self.label_text_par.config(text="Slika rotirana za 90 stepeni")
         # if self.image_parallel: # ADDED
         #     self.image_parallel = self.image_parallel.rotate(90,resample=Image.LANCZOS, expand=True) # ADDED
         #     self.update_history_parallel() # ADDED
         # Otvori sliku i konvertuj je u numpy array
-        angle=90
-        num_processes=psutil.cpu_count(logical=False)
-        img_array = np.array(self.image_parallel)
-        # Odredi dimenzije slike
-    # Odredi dimenzije slike
-        height, width, channels = img_array.shape
-        # Podeli sliku na blokove (npr. 4 bloka)
-        num_blocks = int(np.sqrt(num_processes))
-        block_height = height // num_blocks
-        block_width = width // num_blocks
-        # Kreiraj listu blokova
-        blocks = []
-        for i in range(num_blocks):
-            for j in range(num_blocks):
-                block = img_array[i * block_height:(i + 1) * block_height, j * block_width:(j + 1) * block_width]
-                blocks.append(block)
-        # Koristi multiprocessing za paralelnu rotaciju blokova
-        with multiprocessing.Pool(num_processes) as pool:
-            rotated_blocks = pool.map(rotate_block, blocks)
-        # Sastavi rotirane blokove nazad u jednu sliku
-        rotated_image = np.zeros((width, height, channels), dtype=img_array.dtype)
-        for i in range(num_blocks):
-            for j in range(num_blocks):
-                rotated_block = rotated_blocks[i * num_blocks + j]
-                rotated_block_height, rotated_block_width, _ = rotated_block.shape
-                rotated_image[j * rotated_block_width:(j + 1) * rotated_block_width, (num_blocks - i - 1) * rotated_block_height:(num_blocks - i) * rotated_block_height] = rotated_block
-        # Konvertuj nazad u Image objekat i sačuvaj
-        self.image_parallel = Image.fromarray(rotated_image)
-        self.display_image_parallel()
+    #     angle=90
+    #     num_processes=psutil.cpu_count(logical=False)
+    #     img_array = np.array(self.image_parallel)
+    #     # Odredi dimenzije slike
+    # # Odredi dimenzije slike
+    #     height, width, channels = img_array.shape
+    #     # Podeli sliku na blokove (npr. 4 bloka)
+    #     num_blocks = int(np.sqrt(num_processes))
+    #     block_height = height // num_blocks
+    #     block_width = width // num_blocks
+    #     # Kreiraj listu blokova
+    #     blocks = []
+    #     for i in range(num_blocks):
+    #         for j in range(num_blocks):
+    #             block = img_array[i * block_height:(i + 1) * block_height, j * block_width:(j + 1) * block_width]
+    #             blocks.append(block)
+    #     # Koristi multiprocessing za paralelnu rotaciju blokova
+    #     with multiprocessing.Pool(num_processes) as pool:
+    #         rotated_blocks = pool.map(rotate_block, blocks)
+    #     # Sastavi rotirane blokove nazad u jednu sliku
+    #     rotated_image = np.zeros((width, height, channels), dtype=img_array.dtype)
+    #     for i in range(num_blocks):
+    #         for j in range(num_blocks):
+    #             rotated_block = rotated_blocks[i * num_blocks + j]
+    #             rotated_block_height, rotated_block_width, _ = rotated_block.shape
+    #             rotated_image[j * rotated_block_width:(j + 1) * rotated_block_width, (num_blocks - i - 1) * rotated_block_height:(num_blocks - i) * rotated_block_height] = rotated_block
+    #     # Konvertuj nazad u Image objekat i sačuvaj
+    #     self.image_parallel = Image.fromarray(rotated_image)
+    #     self.display_image_parallel()
  
     def start_crop(self):
         if self.image:
@@ -1085,29 +1218,35 @@ class ImageUploaderApp:
             self.image_canvas.bind("<B1-Motion>", self.on_crop_button_move)
             self.image_canvas.bind("<ButtonRelease-1>", self.on_crop_button_release)
  
-    def start_crop_parallel(self): # ADDED
-        if self.image_parallel: # ADDED
-            self.image_canvas_parallel.bind("<ButtonPress-1>", self.on_crop_button_press_parallel) # ADDED
-            self.image_canvas_parallel.bind("<B1-Motion>", self.on_crop_button_move_parallel) # ADDED
-            self.image_canvas_parallel.bind("<ButtonRelease-1>", self.on_crop_button_release_parallel) # ADDED
- 
+    def start_crop_parallel(self):
+        if self.image_parallel:
+            self.image_canvas_parallel.bind("<ButtonPress-1>", self.on_crop_button_press_parallel)
+            self.image_canvas_parallel.bind("<B1-Motion>", self.on_crop_button_move_parallel)
+            self.image_canvas_parallel.bind("<ButtonRelease-1>", self.on_crop_button_release_parallel)
+
+
     def on_crop_button_press(self, event):
         self.crop_start_x = event.x
         self.crop_start_y = event.y
         self.crop_rectangle = self.image_canvas.create_rectangle(self.crop_start_x, self.crop_start_y, self.crop_start_x, self.crop_start_y, outline='red')
  
-    def on_crop_button_press_parallel(self, event): # ADDED
-        self.crop_start_x_parallel = event.x # ADDED
-        self.crop_start_y_parallel = event.y # ADDED
-        self.crop_rectangle_parallel = self.image_canvas_parallel.create_rectangle(self.crop_start_x_parallel, self.crop_start_y_parallel, self.crop_start_x_parallel, self.crop_start_y_parallel, outline='red') # ADDED
+    
+    def on_crop_button_press_parallel(self, event):
+        self.crop_start_x_parallel = event.x
+        self.crop_start_y_parallel = event.y
+        self.crop_rectangle_parallel = self.image_canvas_parallel.create_rectangle(self.crop_start_x_parallel, self.crop_start_y_parallel, self.crop_start_x_parallel, self.crop_start_y_parallel, outline='red')
+
+
  
     def on_crop_button_move(self, event):
         curX, curY = (event.x, event.y)
         self.image_canvas.coords(self.crop_rectangle, self.crop_start_x, self.crop_start_y, curX, curY)
  
-    def on_crop_button_move_parallel(self, event): # ADDED
-        curX, curY = (event.x, event.y) # ADDED
-        self.image_canvas_parallel.coords(self.crop_rectangle_parallel, self.crop_start_x_parallel, self.crop_start_y_parallel, curX, curY) # ADDED
+    def on_crop_button_move_parallel(self, event):
+        curX, curY = (event.x, event.y)
+        self.image_canvas_parallel.coords(self.crop_rectangle_parallel, self.crop_start_x_parallel, self.crop_start_y_parallel, curX, curY)
+
+
  
     def on_crop_button_release(self, event):
         self.crop_end_x, self.crop_end_y = (event.x, event.y)
@@ -1116,19 +1255,17 @@ class ImageUploaderApp:
         self.image_canvas.unbind("<ButtonRelease-1>")
         self.crop_image()
  
-    def on_crop_button_release_parallel(self, event): # ADDED
-        self.crop_end_x_parallel, self.crop_end_y_parallel = (event.x, event.y) # ADDED
-        self.image_canvas_parallel.unbind("<ButtonPress-1>") # ADDED
-        self.image_canvas_parallel.unbind("<B1-Motion>") # ADDED
-        self.image_canvas_parallel.unbind("<ButtonRelease-1>") # ADDED
-        self.crop_image_parallel() # ADDED
+    def on_crop_button_release_parallel(self, event):
+        self.crop_end_x_parallel, self.crop_end_y_parallel = (event.x, event.y)
+        self.image_canvas_parallel.unbind("<ButtonPress-1>")
+        self.image_canvas_parallel.unbind("<B1-Motion>")
+        self.image_canvas_parallel.unbind("<ButtonRelease-1>")
+        self.crop_image_parallel()
  
     def crop_image(self):
         if self.image:
-        #     cropped_image = self.image.crop((self.crop_start_x, self.crop_start_y, self.crop_end_x, self.crop_end_y))
-        #     self.image = cropped_image
-        #     self.update_history()
-        #     self.display_image()
+            start_time = time.time()  # Start timing
+
             original_width, original_height = self.image.size
             canvas_width = self.image_canvas.winfo_width()
             canvas_height = self.image_canvas.winfo_height()
@@ -1144,39 +1281,85 @@ class ImageUploaderApp:
             # Izrezivanje slike sa transformisanim koordinatama
             cropped_image = self.image.crop((crop_start_x, crop_start_y, crop_end_x, crop_end_y))
             self.image = cropped_image
+
+            width=self.image.width
+            height=self.image.height
+
+            end_time = time.time()  # End timing
+            duration = end_time - start_time
+
+            self.label_text.config(text=f"Dimenzija isječene slike {width}x{height}")
+            
             self.update_history()
             self.display_image()
  
-    def crop_image_parallel(self): # ADDED
-        if self.image_parallel: # ADDED
-            cropped_image_parallel = self.image_parallel.crop((self.crop_start_x_parallel, self.crop_start_y_parallel, self.crop_end_x_parallel, self.crop_end_y_parallel)) # ADDED
-            self.image_parallel = cropped_image_parallel # ADDED
-            self.update_history_parallel() # ADDED
-            self.display_image_parallel() # ADDED
+    def crop_image_parallel(self):
+        if self.image_parallel:
+            start_time = time.time()  # Start timing
+
+            original_width, original_height = self.image_parallel.size
+            canvas_width = self.image_canvas_parallel.winfo_width()
+            canvas_height = self.image_canvas_parallel.winfo_height()
+        
+            scale_x = original_width / canvas_width
+            scale_y = original_height / canvas_height
+        
+            crop_start_x = int(self.crop_start_x_parallel * scale_x)
+            crop_start_y = int(self.crop_start_y_parallel * scale_y)
+            crop_end_x = int(self.crop_end_x_parallel * scale_x)
+            crop_end_y = int(self.crop_end_y_parallel * scale_y)
+        
+            cropped_image = self.image_parallel.crop((crop_start_x, crop_start_y, crop_end_x, crop_end_y))
+            self.image_parallel = cropped_image
+
+            width=self.image_parallel.width
+            height=self.image_parallel.height
+
+            end_time = time.time()  # End timing
+            duration = end_time - start_time
+
+            self.label_text_par.config(text=f"Dimenzija isječene slike {width}x{height}")
+
+            self.update_history_parallel()
+            self.display_image_parallel()
+
+    # def crop_image_process(self, crop_start_x, crop_start_y, crop_end_x, crop_end_y, output_queue):
+    #     with self.image_parallel as img:
+    #         cropped_image = img.crop((crop_start_x, crop_start_y, crop_end_x, crop_end_y))
+    #         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+    #             cropped_image.save(temp_file.name)
+    #             output_queue.put(temp_file.name)
  
     def undo(self):
         if self.history_index > 0:
             self.history_index -= 1
             self.image = self.image_history[self.history_index]
             self.display_image()
+            self.label_text.config(text="Undo akcija izvršena")
  
     def undo_parallel(self): # ADDED
         if self.history_index_parallel > 0: # ADDED
             self.history_index_parallel -= 1 # ADDED
             self.image_parallel = self.image_history_parallel[self.history_index_parallel] # ADDED
             self.display_image_parallel() # ADDED
+            self.label_text_par.config(text="Undo akcija izvršena")
+
  
     def redo(self):
         if self.history_index < len(self.image_history) - 1:
             self.history_index += 1
             self.image = self.image_history[self.history_index]
             self.display_image()
+            self.label_text.config(text="Redo akcija izvršena")
+
  
     def redo_parallel(self): # ADDED
         if self.history_index_parallel < len(self.image_history_parallel) - 1: # ADDED
             self.history_index_parallel += 1 # ADDED
             self.image_parallel = self.image_history_parallel[self.history_index_parallel] # ADDED
             self.display_image_parallel() # ADDED
+            self.label_text.config(text="Redo akcija izvršena")
+
  
     def update_history(self):
         self.image_history = self.image_history[:self.history_index + 1]
@@ -1190,7 +1373,13 @@ class ImageUploaderApp:
  
     def flip(self):
         if(self.image):
+            start_time = time.time()  # Start timing
             self.image = self.image.transpose((Image.FLIP_LEFT_RIGHT))
+            
+            end_time = time.time()  # End timing
+            duration = end_time - start_time
+            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
+            self.update_history()
             self.display_image()
  
     def flip_parallel(self):
@@ -1221,23 +1410,58 @@ class ImageUploaderApp:
             
             end_time = time.time()  # End timing
             duration = end_time - start_time
-            print(f"Time taken to apply flip parallel: {duration:.4f} seconds")
-            
+            # print(f"Time taken to apply flip parallel: {duration:.4f} seconds")
+            self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
+
+
             # Ažuriranje istorije i prikazivanje finalne slike
             self.update_history_parallel()
             self.display_image_parallel()
 
     def blurr(self):
         if(self.image):
+            start_time = time.time()  # Start timing
             self.image = self.image.filter((ImageFilter.GaussianBlur(radius=8)))
-            self.update_history();
+            end_time = time.time()  # End timing
+            duration = end_time - start_time
+            self.update_history()
             self.display_image()
+            self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
  
     def blurr_parallel(self):
-        if(self.image_parallel):
-            self.image_parallel = self.image_parallel.filter((ImageFilter.GaussianBlur(radius=8)))
-            self.update_history_parallel();
+        if self.image_parallel:
+            # Podelite sliku na delove
+            num_parts = psutil.cpu_count(logical=False)  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
+            overlap = 10
+            image_parts_with_indices = self.split_image(num_parts, overlap)
 
+            part_height = self.image_parallel.size[1] // num_parts
+
+            start_time = time.time()  # Start timing
+
+            # Obrada svakog dela paralelno
+            with ProcessPoolExecutor() as executor:
+                futures = [executor.submit(blur_image_part, index, part) for index, part in image_parts_with_indices]
+
+                processed_parts = []
+                for future in as_completed(futures):
+                    processed_parts.append(future.result())
+
+            # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
+            processed_parts.sort(key=lambda x: x[0])
+            processed_parts = [part for index, part in processed_parts]
+
+            # Spajanje obrađenih delova u jednu sliku
+            self.image_parallel = self.merge_image_parts(processed_parts, part_height, overlap)
+            
+            end_time = time.time()  # End timing
+            duration = end_time - start_time
+            # print(f"Time taken to apply flip parallel: {duration:.4f} seconds")
+            self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
+
+
+            # Ažuriranje istorije i prikazivanje finalne slike
+            self.update_history_parallel()
             self.display_image_parallel()
 
 def get_cpu_info():
