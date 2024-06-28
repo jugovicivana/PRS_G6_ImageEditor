@@ -11,7 +11,6 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from tkinter import font
 import psutil
 import numpy as np
-import tempfile
 from tkinter import messagebox
 
 
