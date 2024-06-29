@@ -309,7 +309,7 @@ class ImageUploaderApp:
             
             image_canvas.create_image(0, 0, anchor=tk.NW, image=photo1)
 
-            image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
+            image_canvas.create_text(image_width // 2, image_height // 2, text="Fotografija će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
  
             return image_canvas
  
@@ -354,12 +354,12 @@ class ImageUploaderApp:
         rotate_icon = ImageTk.PhotoImage(rotate_icon)
  
         buttons_left = [
-            ("Upload Image", self.upload_image),
-            ("Reset Filters", self.reset_image),
-            ("Save Image", self.save_image),
-            ("Close Image", self.close_image),
-            ("Increase Saturation", self.increase_saturation),
-            ("Reduce Saturation", self.reduce_saturation)            
+            ("Učitaj fotografiju", self.upload_image),
+            ("Poništi filtere", self.reset_image),
+            ("Sačuvaj fotografiju", self.save_image),
+            ("Zatvori fotografiju", self.close_image),
+            ("Povećaj zasićenje", self.increase_saturation),
+            ("Smanji zasićenje", self.reduce_saturation)            
         ]
         
         style1 = ttk.Style()
@@ -369,9 +369,9 @@ class ImageUploaderApp:
 
 
         buttons_complex_left= [
-            ("Blur", self.blurr),
-            ("Filter Colors", self.apply_complex_filter_serial),
-            ("Filter BW", self.apply_complexBW_filter_serial)
+            ("Zamućenje", self.blurr),
+            ("Kompleksni filter-boje", self.apply_complex_filter_serial),
+            ("Kompleksni filter-BW", self.apply_complexBW_filter_serial)
         ]
  
         for text, command in buttons_left:
@@ -426,40 +426,10 @@ class ImageUploaderApp:
         color_frame_left.pack(pady=10)
  
         colors_left = [
-            ("Blue", lambda: self.apply_color_filter('blue'), '#034b81', '#99cff8'),
-            ("Red", lambda: self.apply_color_filter('red'), '#ac1004','#f88b83'),
-            ("Green", lambda: self.apply_color_filter('green'), '#38761d', '#74fb3a')
+            ("Plavi", lambda: self.apply_color_filter('blue'), '#034b81', '#99cff8'),
+            ("Crveni", lambda: self.apply_color_filter('red'), '#ac1004','#f88b83'),
+            ("Zeleni", lambda: self.apply_color_filter('green'), '#38761d', '#74fb3a')
         ]
-
-
-        # background_colors = ["lightblue", "lightpink", "lightgreen"]
-        # border_colors = ["blue", "red", "green"]
-        # button_text=["Blue", "Red", "Green"]
-        # commands = [lambda: self.apply_color_filter('blue'), lambda: self.apply_color_filter('red'), lambda: self.apply_color_filter('green')]
-
-
-        # buttons = []
-        # for i, (bg_color, border_color, txt) in enumerate(zip(background_colors, border_colors, button_text)):
-        #     style_name = f"{i}.TButton"  # Jedinstveno ime za svaki stil
-        #     style = ttk.Style()
-        #     style.configure("Custom.TButton",
-        #         font=("Helvetica", 10),
-        #         padding=5,
-        #         foreground='white')
-        #     # Konfigurišite stil za svako dugme
-        #     style.configure(style_name,
-        #                     background=bg_color,
-        #                     bordercolor=border_color,
-        #                     relief="solid",
-        #                     borderwidth=1
-        #                     )
-        #     style.map(style_name, background=[('active', bg_color)], relief=[('pressed', 'sunken'), ('!pressed', 'raised')])
-        
-        #     # Kreirajte dugme sa odgovarajućim stilom
-        #     button = ttk.Button(color_frame_left, text=txt, width=7,style=style_name)
-        #     button.pack(side='left', padx=5)
-        #     buttons.append(button)
-
 
         for text, command, color, fgText in colors_left:
             button = tk.Button(color_frame_left, text=text, command=command, width=7, bg=color,fg=fgText, bd=1)
@@ -481,10 +451,6 @@ class ImageUploaderApp:
         undoredo_frame_left = tk.Frame(button_frame, bg='#FFF8DC')
         undoredo_frame_left.pack(pady=10)
  
-        # undoredo_left = [
-        #     ("Undo", self.undo),
-        #     ("Redo", self.redo)
-        # ]
 
         undo_button = ttk.Button(undoredo_frame_left, image=undo_icon, command=self.undo)
         undo_button.image = undo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
@@ -494,9 +460,6 @@ class ImageUploaderApp:
         redo_button.image = redo_icon  # Očuvaj referencu na sliku da se spriječi brisanje iz memorije
         redo_button.pack(side='left', padx=5, pady=10)
  
-        # for text, command in undoredo_left:
-        #     button = tk.Button(undoredo_frame_left, text=text, command=command, width=7,  background='#D74B76',foreground='#EF9595')
-        #     button.pack(side='left', padx=5)
  
         # Kreiraj desni okvir za sliku i gumbe (paralelno izvršavanje)
         self.image_canvas_parallel = create_image_frame(self.right_frame)
@@ -513,12 +476,12 @@ class ImageUploaderApp:
  
         # Kreiraj gumbe i grupiraj ih po funkcionalnosti
         buttons_right = [
-            ("Upload Image", self.upload_image_parallel),
-            ("Reset Filters", self.reset_image_parallel),
-            ("Save Image", self.save_image_parallel),
-            ("Close Image", self.close_image_parallel),
-            ("Increase Saturation", lambda: self.increase_saturation_parallel(psutil.cpu_count(logical=False))),
-            ("Reduce Saturation", lambda: self.reduce_saturation_parallel(psutil.cpu_count(logical=False))),
+            ("Učitaj fotografiju", self.upload_image_parallel),
+            ("Poništi filtere", self.reset_image_parallel),
+            ("Sačuvaj fotografiju", self.save_image_parallel),
+            ("Zatvori fotografiju", self.close_image_parallel),
+            ("Povećaj zasićenje", lambda: self.increase_saturation_parallel(psutil.cpu_count(logical=False))),
+            ("Smanji zasićenje", lambda: self.reduce_saturation_parallel(psutil.cpu_count(logical=False))),
             
         ]
 
@@ -529,9 +492,9 @@ class ImageUploaderApp:
 
 
         buttons_complex_right= [
-            ("Blur", self.blurr_parallel),
-            ("Filter Colors", lambda:self.apply_complex_filter_parallel(psutil.cpu_count(logical=False))),
-            ("Filter BW", lambda:self.apply_complexBW_filter_parallel(psutil.cpu_count(logical=False))),
+            ("Zamućenje", self.blurr_parallel),
+            ("Kompleksni filter-boje", lambda:self.apply_complex_filter_parallel(psutil.cpu_count(logical=False))),
+            ("Kompleksni filter-BW", lambda:self.apply_complexBW_filter_parallel(psutil.cpu_count(logical=False))),
         ]
 
  
@@ -565,9 +528,9 @@ class ImageUploaderApp:
         color_frame_right.pack(pady=10)
  
         colors_right = [
-             ("Blue", lambda: self.apply_color_filter_parallel('blue'), '#034b81', '#99cff8'),
-            ("Red", lambda: self.apply_color_filter_parallel('red'), '#ac1004','#f88b83'),
-            ("Green", lambda: self.apply_color_filter_parallel('green'), '#38761d', '#74fb3a')
+             ("Plavi", lambda: self.apply_color_filter_parallel('blue'), '#034b81', '#99cff8'),
+            ("Crveni", lambda: self.apply_color_filter_parallel('red'), '#ac1004','#f88b83'),
+            ("Zeleni", lambda: self.apply_color_filter_parallel('green'), '#38761d', '#74fb3a')
         ]
  
         for text, command, color, fgText in colors_right:
@@ -612,12 +575,13 @@ class ImageUploaderApp:
 
         if(param=="Parallel"):
             self.left_frame.destroy()
+            separator.destroy()
         elif(param=="Serial"):
             self.right_frame.destroy()
- 
+            separator.destroy()
  
     def upload_image(self):
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")])
         if file_path:
             self.image = Image.open(file_path)
             self.image_history = [self.image.copy()]
@@ -630,7 +594,7 @@ class ImageUploaderApp:
 
  
     def upload_image_parallel(self): # ADDED
-        file_path = filedialog.askopenfilename() # ADDED
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")])
         if file_path: # ADDED
             self.image_parallel = Image.open(file_path) # ADDED
             self.image_history_parallel = [self.image_parallel.copy()] # ADDED
@@ -697,11 +661,11 @@ class ImageUploaderApp:
             self.image_canvas.create_image(0, 0, anchor=tk.NW, image=photo1)
 
 
-            self.image_canvas.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
+            self.image_canvas.create_text(image_width // 2, image_height // 2, text="Fotografija će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
 
 
 
-            self.label_text.config(text="Slika uklonjena")
+            self.label_text.config(text="Fotografija uklonjena")
             # self.history_index=-1
             self.history_index=0
             self.image_history = [None]
@@ -731,8 +695,8 @@ class ImageUploaderApp:
             self.image_canvas_parallel.create_image(0, 0, anchor=tk.NW, image=photo1)
 
 
-            self.image_canvas_parallel.create_text(image_width // 2, image_height // 2, text="Slika će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
-            self.label_text_par.config(text="Slika uklonjena")
+            self.image_canvas_parallel.create_text(image_width // 2, image_height // 2, text="Fotografija će se prikazati ovdje", fill='#4B0082', font=("Helvetica", 20))
+            self.label_text_par.config(text="Fotografija uklonjena")
 
             self.history_index_parallel=0
             self.image_history_parallel = [None]
@@ -788,19 +752,37 @@ class ImageUploaderApp:
  
     def save_image(self):
         if self.image:
-            file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
+            file_path = filedialog.asksaveasfilename(
+        defaultextension=".png",
+        filetypes=[
+            ("PNG files", "*.png"),
+            ("JPEG files", "*.jpg;*.jpeg"),
+            ("BMP files", "*.bmp"),
+            ("GIF files", "*.gif"),
+            ("All files", "*.*")
+        ]
+    )
             if file_path:
                 self.image.save(file_path)
-                self.label_text.config(text=f"Slika {file_path} je sačuvana")
-                messagebox.showinfo("Obavještenje", f"Slika je sačuvana na lokaciju {file_path}")
+                self.label_text.config(text=f"Fotografija {file_path} je sačuvana")
+                messagebox.showinfo("Obavještenje", f"Fotografija je sačuvana na lokaciju {file_path}")
  
     def save_image_parallel(self): # ADDED
         if self.image_parallel: # ADDED
-            file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")]) # ADDED
+            file_path = filedialog.asksaveasfilename(
+        defaultextension=".png",
+        filetypes=[
+            ("PNG files", "*.png"),
+            ("JPEG files", "*.jpg;*.jpeg"),
+            ("BMP files", "*.bmp"),
+            ("GIF files", "*.gif"),
+            ("All files", "*.*")
+        ]
+    )
             if file_path: # ADDED
                 self.image_parallel.save(file_path) # ADDED
-                self.label_text_par.config(text=f"Slika {file_path} je sačuvana")
-                messagebox.showinfo("Obavještenje", f"Slika je sačuvana na lokaciju {file_path}")
+                self.label_text_par.config(text=f"Fotografija {file_path} je sačuvana")
+                messagebox.showinfo("Obavještenje", f"Fotografija je sačuvana na lokaciju {file_path}")
 
  
     def increase_saturation(self):
@@ -1150,7 +1132,7 @@ class ImageUploaderApp:
             self.image=img
             self.update_history() 
             self.display_image()
-            self.label_text.config(text="Slika rotirana za 90 stepeni")
+            self.label_text.config(text="Fotografija rotirana za 90 stepeni")
     # def merge_image_rot(self, image_parts, part_height, overlap):
     #     if not image_parts:
     #         return None
@@ -1176,40 +1158,7 @@ class ImageUploaderApp:
             self.image_parallel=img
             self.update_history_parallel() 
             self.display_image_parallel()
-            self.label_text_par.config(text="Slika rotirana za 90 stepeni")
-        # if self.image_parallel: # ADDED
-        #     self.image_parallel = self.image_parallel.rotate(90,resample=Image.LANCZOS, expand=True) # ADDED
-        #     self.update_history_parallel() # ADDED
-        # Otvori sliku i konvertuj je u numpy array
-    #     angle=90
-    #     num_processes=psutil.cpu_count(logical=False)
-    #     img_array = np.array(self.image_parallel)
-    #     # Odredi dimenzije slike
-    # # Odredi dimenzije slike
-    #     height, width, channels = img_array.shape
-    #     # Podeli sliku na blokove (npr. 4 bloka)
-    #     num_blocks = int(np.sqrt(num_processes))
-    #     block_height = height // num_blocks
-    #     block_width = width // num_blocks
-    #     # Kreiraj listu blokova
-    #     blocks = []
-    #     for i in range(num_blocks):
-    #         for j in range(num_blocks):
-    #             block = img_array[i * block_height:(i + 1) * block_height, j * block_width:(j + 1) * block_width]
-    #             blocks.append(block)
-    #     # Koristi multiprocessing za paralelnu rotaciju blokova
-    #     with multiprocessing.Pool(num_processes) as pool:
-    #         rotated_blocks = pool.map(rotate_block, blocks)
-    #     # Sastavi rotirane blokove nazad u jednu sliku
-    #     rotated_image = np.zeros((width, height, channels), dtype=img_array.dtype)
-    #     for i in range(num_blocks):
-    #         for j in range(num_blocks):
-    #             rotated_block = rotated_blocks[i * num_blocks + j]
-    #             rotated_block_height, rotated_block_width, _ = rotated_block.shape
-    #             rotated_image[j * rotated_block_width:(j + 1) * rotated_block_width, (num_blocks - i - 1) * rotated_block_height:(num_blocks - i) * rotated_block_height] = rotated_block
-    #     # Konvertuj nazad u Image objekat i sačuvaj
-    #     self.image_parallel = Image.fromarray(rotated_image)
-    #     self.display_image_parallel()
+            self.label_text_par.config(text="Fotografija rotirana za 90 stepeni")
  
     def start_crop(self):
         if self.image:
@@ -1245,8 +1194,6 @@ class ImageUploaderApp:
         curX, curY = (event.x, event.y)
         self.image_canvas_parallel.coords(self.crop_rectangle_parallel, self.crop_start_x_parallel, self.crop_start_y_parallel, curX, curY)
 
-
- 
     def on_crop_button_release(self, event):
         self.crop_end_x, self.crop_end_y = (event.x, event.y)
         self.image_canvas.unbind("<ButtonPress-1>")
@@ -1321,13 +1268,6 @@ class ImageUploaderApp:
 
             self.update_history_parallel()
             self.display_image_parallel()
-
-    # def crop_image_process(self, crop_start_x, crop_start_y, crop_end_x, crop_end_y, output_queue):
-    #     with self.image_parallel as img:
-    #         cropped_image = img.crop((crop_start_x, crop_start_y, crop_end_x, crop_end_y))
-    #         with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-    #             cropped_image.save(temp_file.name)
-    #             output_queue.put(temp_file.name)
  
     def undo(self):
         if self.history_index > 0:
@@ -1343,14 +1283,12 @@ class ImageUploaderApp:
             self.display_image_parallel() # ADDED
             self.label_text_par.config(text="Undo akcija izvršena")
 
- 
     def redo(self):
         if self.history_index < len(self.image_history) - 1:
             self.history_index += 1
             self.image = self.image_history[self.history_index]
             self.display_image()
             self.label_text.config(text="Redo akcija izvršena")
-
  
     def redo_parallel(self): # ADDED
         if self.history_index_parallel < len(self.image_history_parallel) - 1: # ADDED
@@ -1359,7 +1297,6 @@ class ImageUploaderApp:
             self.display_image_parallel() # ADDED
             self.label_text.config(text="Redo akcija izvršena")
 
- 
     def update_history(self):
         self.image_history = self.image_history[:self.history_index + 1]
         self.image_history.append(self.image.copy())
