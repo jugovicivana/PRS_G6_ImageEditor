@@ -505,6 +505,8 @@ class ImageUploaderApp:
         file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")])
         if file_path:
             self.image = Image.open(file_path)
+            original_width=self.image.width
+            original_height=self.image.height
             self.image_history = [self.image.copy()]
             imgwidth=self.image.width
             imgheight=self.image.height
@@ -512,12 +514,18 @@ class ImageUploaderApp:
             self.history_index = 0
             self.display_image()
             self.label_text.config(text=f"Dimenzije slike {imgwidth}x{imgheight}.")
+            if(original_height>=1800 and original_width>=1800):
+                messagebox.showinfo("Obavještenje", "Preporučuje se paralelna obrada fotografije!")
+
+                
 
     #Funkcija za učitavanje slike u canvas za paralelno izvršavanje
     def upload_image_parallel(self): 
         file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")])
         if file_path: 
             self.image_parallel = Image.open(file_path) 
+            original_width=self.image_parallel.width
+            original_height=self.image_parallel.height
             self.image_history_parallel = [self.image_parallel.copy()] 
 
             imgwidth=self.image_parallel.width
@@ -526,6 +534,9 @@ class ImageUploaderApp:
             self.history_index_parallel = 0 
             self.display_image_parallel() 
             self.label_text_par.config(text=f"Dimenzije slike {imgwidth}x{imgheight}.")
+            
+            if(original_height<=1800 and original_width<=1800):
+                messagebox.showinfo("Obavještenje", "Preporučuje se serijska obrada fotografije!")
 
     #Funkcija za prikazivanje slike u canvasu za serijsko izvršavanje
     def display_image(self):
@@ -1120,127 +1131,112 @@ class ImageUploaderApp:
             self.label_text.config(text="Redo akcija izvršena")
 
 
-    #---------------------------------------------------------------------------------
+    #Funkcija za pamćenje koraka pri obradi fotografije za serijsku obradu
     def update_history(self):
         self.image_history = self.image_history[:self.history_index + 1]
         self.image_history.append(self.image.copy())
         self.history_index += 1
  
-    def update_history_parallel(self): # ADDED
-        self.image_history_parallel = self.image_history_parallel[:self.history_index_parallel + 1] # ADDED
-        self.image_history_parallel.append(self.image_parallel.copy()) # ADDED
-        self.history_index_parallel += 1 # ADDED
+    #Funkcija za pamćenje koraka pri obradi fotografije za paralelnu obradu
+    def update_history_parallel(self): 
+        self.image_history_parallel = self.image_history_parallel[:self.history_index_parallel + 1] 
+        self.image_history_parallel.append(self.image_parallel.copy()) 
+        self.history_index_parallel += 1 
  
+    #Funkcija za obrtanje fotografije (slika u ogledalu) za serijsku obradu
     def flip(self):
         if(self.image):
-            start_time = time.time()  # Start timing
-            self.image = self.image.transpose((Image.FLIP_LEFT_RIGHT))
-            
-            end_time = time.time()  # End timing
+            start_time = time.time()  
+            self.image = self.image.transpose((Image.FLIP_LEFT_RIGHT))            
+            end_time = time.time()  
             duration = end_time - start_time
             self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
             self.update_history()
             self.display_image()
  
+    #Funkcija za obrtanje fotografije (slika u ogledalu) za paralelnu obradu
     def flip_parallel(self):
         if self.image_parallel:
-            # Podelite sliku na delove
-            num_parts = psutil.cpu_count(logical=False)  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
+            num_parts = psutil.cpu_count(logical=False)  
             overlap = 10
             image_parts_with_indices = self.split_image(num_parts, overlap)
-
             part_height = self.image_parallel.size[1] // num_parts
-
-            start_time = time.time()  # Start timing
-
-            # Obrada svakog dela paralelno
+            start_time = time.time()  
             with ProcessPoolExecutor() as executor:
                 futures = [executor.submit(flip_image_part, index, part) for index, part in image_parts_with_indices]
-
                 processed_parts = []
                 for future in as_completed(futures):
                     processed_parts.append(future.result())
 
-            # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
+            # Sortiranje dijelova po indeksu da bismo osigurali pravilan redoslijed
             processed_parts.sort(key=lambda x: x[0])
             processed_parts = [part for index, part in processed_parts]
 
-            # Spajanje obrađenih delova u jednu sliku
             self.image_parallel = self.merge_image_parts(processed_parts, part_height, overlap)
             
-            end_time = time.time()  # End timing
+            end_time = time.time() 
             duration = end_time - start_time
-            # print(f"Time taken to apply flip parallel: {duration:.4f} seconds")
             self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} sekundi")
-
-
-            # Ažuriranje istorije i prikazivanje finalne slike
             self.update_history_parallel()
             self.display_image_parallel()
 
+    #Funkcija za zamućenje fotografije za serijsku obradu
     def blurr(self):
         if(self.image):
-            start_time = time.time()  # Start timing
+            start_time = time.time()  
             self.image = self.image.filter((ImageFilter.GaussianBlur(radius=8)))
-            end_time = time.time()  # End timing
+            end_time = time.time()  
             duration = end_time - start_time
             self.update_history()
             self.display_image()
             self.label_text.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
  
+    #Funkcija za zamućenje fotografije za paralelnu obradu
     def blurr_parallel(self):
         if self.image_parallel:
-            # Podelite sliku na delove
-            num_parts = psutil.cpu_count(logical=False)  # Ovo možete prilagoditi prema broju dostupnih CPU jezgara
+            num_parts = psutil.cpu_count(logical=False) 
             overlap = 10
             image_parts_with_indices = self.split_image(num_parts, overlap)
-
             part_height = self.image_parallel.size[1] // num_parts
-
-            start_time = time.time()  # Start timing
-
-            # Obrada svakog dela paralelno
+            start_time = time.time() 
             with ProcessPoolExecutor() as executor:
                 futures = [executor.submit(blur_image_part, index, part) for index, part in image_parts_with_indices]
-
                 processed_parts = []
                 for future in as_completed(futures):
                     processed_parts.append(future.result())
-
-            # Sortiranje delova po indeksu da bismo osigurali pravilan redosled
             processed_parts.sort(key=lambda x: x[0])
             processed_parts = [part for index, part in processed_parts]
 
-            # Spajanje obrađenih delova u jednu sliku
-            self.image_parallel = self.merge_image_parts(processed_parts, part_height, overlap)
-            
-            end_time = time.time()  # End timing
+            self.image_parallel = self.merge_image_parts(processed_parts, part_height, overlap)            
+            end_time = time.time() 
             duration = end_time - start_time
-            # print(f"Time taken to apply flip parallel: {duration:.4f} seconds")
             self.label_text_par.config(text=f"Vrijeme izvršavanja: {duration:.4f} seconds")
-
-
-            # Ažuriranje istorije i prikazivanje finalne slike
             self.update_history_parallel()
             self.display_image_parallel()
 
+#Funkcija za dobijanje podataka o korisničkom računaru
 def get_cpu_info():
-    cpu_count = psutil.cpu_count(logical=False)  # Broj fizičkih jezgara
-    cpu_usage = psutil.cpu_percent(interval=1)  # Procenat opterećenja CPU-a u poslednjoj sekundi
-    print(cpu_usage)
-    print(cpu_count)
+    #Dobijanje broja fizičkih jezgara
+    cpu_count = psutil.cpu_count(logical=False) 
+    #Dobijanje procenta opterećenja procesora 
+    cpu_usage = psutil.cpu_percent(interval=1) 
     return cpu_count, cpu_usage
 
+#Funkcija za određivanje načina obrade fotografije
 def choose_processing_mode(cpu_count, cpu_usage, threshold=50):
-    # Provera da li je opterećenje CPU-a manje od praga
+    #Provjera da li je opterećenje CPU-a manje od zadatog praga
     if cpu_usage < threshold:
         return "Parallel" if cpu_count > 1 else "Serial"
     else:
         return "Serial"
- 
+
+#Funkcija za pokretanje aplikacije
 if __name__ == "__main__":
+    #Inicijalizacija glavnog prozora aplikacije
     root = tk.Tk()
     app = StartPage(root)
     num_cores, cpu_load = get_cpu_info()
     processing_mode = choose_processing_mode(num_cores, cpu_load)
+
+    #Pokretanje Tkinter petlje događaja
     root.mainloop()
