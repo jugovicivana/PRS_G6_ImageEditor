@@ -514,10 +514,7 @@ class ImageUploaderApp:
             self.history_index = 0
             self.display_image()
             self.label_text.config(text=f"Dimenzije slike {imgwidth}x{imgheight}.")
-            if(original_height>=1800 and original_width>=1800):
-                messagebox.showinfo("Obavještenje", "Preporučuje se paralelna obrada fotografije!")
-
-                
+            
 
     #Funkcija za učitavanje slike u canvas za paralelno izvršavanje
     def upload_image_parallel(self): 
@@ -534,9 +531,7 @@ class ImageUploaderApp:
             self.history_index_parallel = 0 
             self.display_image_parallel() 
             self.label_text_par.config(text=f"Dimenzije slike {imgwidth}x{imgheight}.")
-            
-            if(original_height<=1800 and original_width<=1800):
-                messagebox.showinfo("Obavještenje", "Preporučuje se serijska obrada fotografije!")
+
 
     #Funkcija za prikazivanje slike u canvasu za serijsko izvršavanje
     def display_image(self):
